@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "works": [
+    {
+      "id": 101,
+      "slug": "barato",
+      "display": "Barato",
+      "top_pill": true,
+      "entries": [
+        {
+          "slug": "chapter_1",
+          "path": "book_1/chapter_1",
+          "type": "chapter",
+          "subtitle": "Chapter 1"
+        },
+        {
+          "slug": "chapter_2",
+          "path": "book_1/chapter_2",
+          "type": "chapter",
+          "subtitle": "Chapter 2"
+        },
+        {
+          "slug": "chapter_3",
+          "path": "book_1/chapter_3",
+          "type": "chapter",
+          "subtitle": "Chapter 3"
+        }
+      ]
+    },
+    {
+      "id": 201,
+      "slug": "jaja",
+      "display": "Jaja",
+      "top_pill": true,
+      "entries": [
+        {
+          "slug": "chapter_1",
+          "path": "book_1/chapter_1",
+          "type": "chapter",
+          "subtitle": "Chapter 1"
+        },
+        {
+          "slug": "chapter_2",
+          "path": "book_1/chapter_2",
+          "type": "chapter",
+          "subtitle": "Chapter 2"
+        },
+        {
+          "slug": "chapter_3",
+          "path": "book_1/chapter_3",
+          "type": "chapter",
+          "subtitle": "Chapter 3"
+        }
+      ]
+    }
+  ]
+}
