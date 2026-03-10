@@ -80,6 +80,20 @@
           "subtitle": "Chapter 1"
         }
       ]
+    },
+    {
+      "id": 501,
+      "slug": "dragonball",
+      "display": "Dragonball",
+      "top_pill": true,
+      "entries": [
+        {
+          "slug": "chapter_1",
+          "path": "book_1/chapter_1",
+          "type": "chapter",
+          "subtitle": "Chapter 1"
+        }
+      ]
     }
   ]
 }
