@@ -114,6 +114,12 @@
           "path": "book_1/chapter_3",
           "type": "chapter",
           "subtitle": "Chapter 3"
+        },
+        {
+          "slug": "chapter_4",
+          "path": "book_1/chapter_4",
+          "type": "chapter",
+          "subtitle": "Chapter 4"
         }
       ]
     },
