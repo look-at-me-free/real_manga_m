@@ -7,13 +7,108 @@
       "display": "Barato",
       "top_pill": true,
       "entries": [
-        { "slug": "chapter_1", "path": "book_1/chapter_1", "type": "chapter", "subtitle": "Chapter 1" },
-        { "slug": "chapter_2", "path": "book_1/chapter_2", "type": "chapter", "subtitle": "Chapter 2" },
-        { "slug": "chapter_3", "path": "book_1/chapter_3", "type": "chapter", "subtitle": "Chapter 3" },
-        { "slug": "chapter_4", "path": "book_1/chapter_4", "type": "chapter", "subtitle": "Chapter 4" },
-        { "slug": "chapter_5", "path": "book_1/chapter_5", "type": "chapter", "subtitle": "Chapter 5" },
-        { "slug": "chapter_6", "path": "book_1/chapter_6", "type": "chapter", "subtitle": "Chapter 6" },
-        { "slug": "chapter_7", "path": "book_1/chapter_7", "type": "chapter", "subtitle": "Chapter 7" }
+        {
+          "slug": "chapter_1",
+          "path": "book_1/chapter_1",
+          "type": "chapter",
+          "subtitle": "Chapter 1"
+        },
+        {
+          "slug": "chapter_2",
+          "path": "book_1/chapter_2",
+          "type": "chapter",
+          "subtitle": "Chapter 2"
+        },
+        {
+          "slug": "chapter_3",
+          "path": "book_1/chapter_3",
+          "type": "chapter",
+          "subtitle": "Chapter 3"
+        },
+        {
+          "slug": "chapter_4",
+          "path": "book_1/chapter_4",
+          "type": "chapter",
+          "subtitle": "Chapter 4"
+        },
+        {
+          "slug": "chapter_5",
+          "path": "book_1/chapter_5",
+          "type": "chapter",
+          "subtitle": "Chapter 5"
+        },
+        {
+          "slug": "chapter_6",
+          "path": "book_1/chapter_6",
+          "type": "chapter",
+          "subtitle": "Chapter 6"
+        },
+        {
+          "slug": "chapter_7",
+          "path": "book_1/chapter_7",
+          "type": "chapter",
+          "subtitle": "Chapter 7"
+        },
+        {
+          "slug": "chapter_008",
+          "path": "book_2/chapter_008",
+          "type": "chapter",
+          "subtitle": "Chapter 8"
+        },
+        {
+          "slug": "chapter_009",
+          "path": "book_2/chapter_009",
+          "type": "chapter",
+          "subtitle": "Chapter 9"
+        },
+        {
+          "slug": "chapter_010",
+          "path": "book_2/chapter_010",
+          "type": "chapter",
+          "subtitle": "Chapter 10"
+        },
+        {
+          "slug": "chapter_011",
+          "path": "book_2/chapter_011",
+          "type": "chapter",
+          "subtitle": "Chapter 11"
+        },
+        {
+          "slug": "chapter_012",
+          "path": "book_2/chapter_012",
+          "type": "chapter",
+          "subtitle": "Chapter 12"
+        },
+        {
+          "slug": "chapter_013",
+          "path": "book_2/chapter_013",
+          "type": "chapter",
+          "subtitle": "Chapter 13"
+        },
+        {
+          "slug": "chapter_014",
+          "path": "book_2/chapter_014",
+          "type": "chapter",
+          "subtitle": "Chapter 14"
+        },
+        {
+          "slug": "chapter_015",
+          "path": "book_2/chapter_015",
+          "type": "chapter",
+          "subtitle": "Chapter 15"
+        },
+        {
+          "slug": "chapter_016",
+          "path": "book_2/chapter_016",
+          "type": "chapter",
+          "subtitle": "Chapter 16"
+        },
+        {
+          "slug": "chapter_017",
+          "path": "book_2/chapter_017",
+          "type": "chapter",
+          "subtitle": "Chapter 17"
+        }
       ]
     },
     {
@@ -22,9 +117,24 @@
       "display": "Jaja",
       "top_pill": true,
       "entries": [
-        { "slug": "chapter_1", "path": "book_1/chapter_1", "type": "chapter", "subtitle": "Chapter 1" },
-        { "slug": "chapter_2", "path": "book_1/chapter_2", "type": "chapter", "subtitle": "Chapter 2" },
-        { "slug": "chapter_3", "path": "book_1/chapter_3", "type": "chapter", "subtitle": "Chapter 3" }
+        {
+          "slug": "chapter_1",
+          "path": "book_1/chapter_1",
+          "type": "chapter",
+          "subtitle": "Chapter 1"
+        },
+        {
+          "slug": "chapter_2",
+          "path": "book_1/chapter_2",
+          "type": "chapter",
+          "subtitle": "Chapter 2"
+        },
+        {
+          "slug": "chapter_3",
+          "path": "book_1/chapter_3",
+          "type": "chapter",
+          "subtitle": "Chapter 3"
+        }
       ]
     },
     {
@@ -33,11 +143,36 @@
       "display": "Golden",
       "top_pill": true,
       "entries": [
-        { "slug": "chapter_1", "path": "chapter_1", "type": "chapter", "subtitle": "Chapter 1" },
-        { "slug": "chapter_2", "path": "chapter_2", "type": "chapter", "subtitle": "Chapter 2" },
-        { "slug": "chapter_3", "path": "chapter_3", "type": "chapter", "subtitle": "Chapter 3" },
-        { "slug": "chapter_4", "path": "chapter_4", "type": "chapter", "subtitle": "Chapter 4" },
-        { "slug": "chapter_5", "path": "chapter_5", "type": "chapter", "subtitle": "Chapter 5" }
+        {
+          "slug": "chapter_1",
+          "path": "chapter_1",
+          "type": "chapter",
+          "subtitle": "Chapter 1"
+        },
+        {
+          "slug": "chapter_2",
+          "path": "chapter_2",
+          "type": "chapter",
+          "subtitle": "Chapter 2"
+        },
+        {
+          "slug": "chapter_3",
+          "path": "chapter_3",
+          "type": "chapter",
+          "subtitle": "Chapter 3"
+        },
+        {
+          "slug": "chapter_4",
+          "path": "chapter_4",
+          "type": "chapter",
+          "subtitle": "Chapter 4"
+        },
+        {
+          "slug": "chapter_5",
+          "path": "chapter_5",
+          "type": "chapter",
+          "subtitle": "Chapter 5"
+        }
       ]
     },
     {
@@ -46,15 +181,60 @@
       "display": "Bark",
       "top_pill": true,
       "entries": [
-        { "slug": "chapter_1", "path": "book_1/chapter_1", "type": "chapter", "subtitle": "Chapter 1" },
-        { "slug": "chapter_2", "path": "book_1/chapter_2", "type": "chapter", "subtitle": "Chapter 2" },
-        { "slug": "chapter_3", "path": "book_1/chapter_3", "type": "chapter", "subtitle": "Chapter 3" },
-        { "slug": "chapter_4", "path": "book_2/chapter_4", "type": "chapter", "subtitle": "Chapter 4" },
-        { "slug": "chapter_5", "path": "book_2/chapter_5", "type": "chapter", "subtitle": "Chapter 5" },
-        { "slug": "chapter_6", "path": "book_3/chapter_6", "type": "chapter", "subtitle": "Chapter 6" },
-        { "slug": "chapter_7", "path": "book_3/chapter_7", "type": "chapter", "subtitle": "Chapter 7" },
-        { "slug": "chapter_8", "path": "book_3/chapter_8", "type": "chapter", "subtitle": "Chapter 8" },
-        { "slug": "chapter_9", "path": "book_3/chapter_9", "type": "chapter", "subtitle": "Chapter 9" }
+        {
+          "slug": "chapter_1",
+          "path": "book_1/chapter_1",
+          "type": "chapter",
+          "subtitle": "Chapter 1"
+        },
+        {
+          "slug": "chapter_2",
+          "path": "book_1/chapter_2",
+          "type": "chapter",
+          "subtitle": "Chapter 2"
+        },
+        {
+          "slug": "chapter_3",
+          "path": "book_1/chapter_3",
+          "type": "chapter",
+          "subtitle": "Chapter 3"
+        },
+        {
+          "slug": "chapter_4",
+          "path": "book_2/chapter_4",
+          "type": "chapter",
+          "subtitle": "Chapter 4"
+        },
+        {
+          "slug": "chapter_5",
+          "path": "book_2/chapter_5",
+          "type": "chapter",
+          "subtitle": "Chapter 5"
+        },
+        {
+          "slug": "chapter_6",
+          "path": "book_3/chapter_6",
+          "type": "chapter",
+          "subtitle": "Chapter 6"
+        },
+        {
+          "slug": "chapter_7",
+          "path": "book_3/chapter_7",
+          "type": "chapter",
+          "subtitle": "Chapter 7"
+        },
+        {
+          "slug": "chapter_8",
+          "path": "book_3/chapter_8",
+          "type": "chapter",
+          "subtitle": "Chapter 8"
+        },
+        {
+          "slug": "chapter_9",
+          "path": "book_3/chapter_9",
+          "type": "chapter",
+          "subtitle": "Chapter 9"
+        }
       ]
     },
     {
@@ -63,9 +243,24 @@
       "display": "Dragonball",
       "top_pill": true,
       "entries": [
-        { "slug": "chapter_1", "path": "book_1/chapter_1", "type": "chapter", "subtitle": "Chapter 1" },
-        { "slug": "chapter_2", "path": "book_1/chapter_2", "type": "chapter", "subtitle": "Chapter 2" },
-        { "slug": "chapter_3", "path": "book_1/chapter_3", "type": "chapter", "subtitle": "Chapter 3" }
+        {
+          "slug": "chapter_1",
+          "path": "book_1/chapter_1",
+          "type": "chapter",
+          "subtitle": "Chapter 1"
+        },
+        {
+          "slug": "chapter_2",
+          "path": "book_1/chapter_2",
+          "type": "chapter",
+          "subtitle": "Chapter 2"
+        },
+        {
+          "slug": "chapter_3",
+          "path": "book_1/chapter_3",
+          "type": "chapter",
+          "subtitle": "Chapter 3"
+        }
       ]
     },
     {
@@ -74,9 +269,24 @@
       "display": "Blade Of The Immortal",
       "top_pill": true,
       "entries": [
-        { "slug": "chapter_1", "path": "book_1/chapter_1", "type": "chapter", "subtitle": "Chapter 1" },
-        { "slug": "chapter_2", "path": "book_1/chapter_2", "type": "chapter", "subtitle": "Chapter 2" },
-        { "slug": "chapter_3", "path": "book_1/chapter_3", "type": "chapter", "subtitle": "Chapter 3" }
+        {
+          "slug": "chapter_1",
+          "path": "book_1/chapter_1",
+          "type": "chapter",
+          "subtitle": "Chapter 1"
+        },
+        {
+          "slug": "chapter_2",
+          "path": "book_1/chapter_2",
+          "type": "chapter",
+          "subtitle": "Chapter 2"
+        },
+        {
+          "slug": "chapter_3",
+          "path": "book_1/chapter_3",
+          "type": "chapter",
+          "subtitle": "Chapter 3"
+        }
       ]
     },
     {
@@ -85,15 +295,60 @@
       "display": "One Piece",
       "top_pill": true,
       "entries": [
-        { "slug": "chapter_0", "path": "book_1/chapter_0", "type": "chapter", "subtitle": "Chapter 0" },
-        { "slug": "chapter_1", "path": "book_1/chapter_1", "type": "chapter", "subtitle": "Chapter 1" },
-        { "slug": "chapter_2", "path": "book_1/chapter_2", "type": "chapter", "subtitle": "Chapter 2" },
-        { "slug": "chapter_3", "path": "book_1/chapter_3", "type": "chapter", "subtitle": "Chapter 3" },
-        { "slug": "chapter_4", "path": "book_1/chapter_4", "type": "chapter", "subtitle": "Chapter 4" },
-        { "slug": "chapter_5", "path": "book_1/chapter_5", "type": "chapter", "subtitle": "Chapter 5" },
-        { "slug": "chapter_6", "path": "book_1/chapter_6", "type": "chapter", "subtitle": "Chapter 6" },
-        { "slug": "chapter_7", "path": "book_1/chapter_7", "type": "chapter", "subtitle": "Chapter 7" },
-        { "slug": "official_extras", "path": "book_1/official_extras", "type": "chapter", "subtitle": "Official Extras" }
+        {
+          "slug": "chapter_0",
+          "path": "book_1/chapter_0",
+          "type": "chapter",
+          "subtitle": "Chapter 0"
+        },
+        {
+          "slug": "chapter_1",
+          "path": "book_1/chapter_1",
+          "type": "chapter",
+          "subtitle": "Chapter 1"
+        },
+        {
+          "slug": "chapter_2",
+          "path": "book_1/chapter_2",
+          "type": "chapter",
+          "subtitle": "Chapter 2"
+        },
+        {
+          "slug": "chapter_3",
+          "path": "book_1/chapter_3",
+          "type": "chapter",
+          "subtitle": "Chapter 3"
+        },
+        {
+          "slug": "chapter_4",
+          "path": "book_1/chapter_4",
+          "type": "chapter",
+          "subtitle": "Chapter 4"
+        },
+        {
+          "slug": "chapter_5",
+          "path": "book_1/chapter_5",
+          "type": "chapter",
+          "subtitle": "Chapter 5"
+        },
+        {
+          "slug": "chapter_6",
+          "path": "book_1/chapter_6",
+          "type": "chapter",
+          "subtitle": "Chapter 6"
+        },
+        {
+          "slug": "chapter_7",
+          "path": "book_1/chapter_7",
+          "type": "chapter",
+          "subtitle": "Chapter 7"
+        },
+        {
+          "slug": "official_extras",
+          "path": "book_1/official_extras",
+          "type": "chapter",
+          "subtitle": "Official Extras"
+        }
       ]
     }
   ]
