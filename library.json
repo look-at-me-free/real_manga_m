@@ -382,6 +382,56 @@
           "subtitle": "Episode 4"
         }
       ]
+    },
+    {
+      "id": 901,
+      "slug": "Pluto",
+      "display": "Pluto",
+      "top_pill": true,
+      "entries": [
+        {
+          "slug": "Act_1",
+          "path": "Volume_1/Act_1",
+          "type": "chapter",
+          "subtitle": "Volume 1 · Act 1"
+        },
+        {
+          "slug": "Act_2",
+          "path": "Volume_1/Act_2",
+          "type": "chapter",
+          "subtitle": "Volume 1 · Act 2"
+        },
+        {
+          "slug": "Act_3",
+          "path": "Volume_1/Act_3",
+          "type": "chapter",
+          "subtitle": "Volume 1 · Act 3"
+        },
+        {
+          "slug": "Act_4",
+          "path": "Volume_1/Act_4",
+          "type": "chapter",
+          "subtitle": "Volume 1 · Act 4"
+        },
+        {
+          "slug": "Act_5",
+          "path": "Volume_1/Act_5",
+          "type": "chapter",
+          "subtitle": "Volume 1 · Act 5"
+        },
+        {
+          "slug": "Act_6",
+          "path": "Volume_1/Act_6",
+          "type": "chapter",
+          "subtitle": "Volume 1 · Act 6"
+        },
+        {
+          "slug": "Act_7",
+          "path": "Volume_1/Act_7",
+          "type": "chapter",
+          "subtitle": "Volume 1 · Act 7"
+        }
+      ]
     }
   ]
 }
