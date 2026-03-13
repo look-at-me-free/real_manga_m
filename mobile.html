@@ -17,10 +17,9 @@
 
       if (isMobile) return;
 
-      var target = new URL(window.location.origin + "/");
-      target.search = window.location.search;
-      target.hash = window.location.hash;
-      window.location.replace(target.toString());
+      var basePath = window.location.pathname.replace(/\/[^\/]*$/, "/");
+      var target = window.location.origin + basePath + "index.html" + window.location.search + window.location.hash;
+      window.location.replace(target);
     })();
   </script>
 
@@ -32,12 +31,10 @@
   <style>
     :root{
       --bg:#080a10;
-      --bg2:#0e1119;
       --ink:#f7f8fb;
       --muted:rgba(247,248,251,.74);
       --muted2:rgba(247,248,251,.5);
       --stroke:rgba(255,255,255,.12);
-      --strokeStrong:rgba(255,255,255,.18);
       --panel:rgba(255,255,255,.045);
       --panel2:rgba(255,255,255,.075);
       --shadow:0 18px 48px rgba(0,0,0,.42);
@@ -87,7 +84,7 @@
     .page-progress-bar{
       width:0%;
       height:100%;
-      background:linear-gradient(90deg, rgba(255,255,255,.95), rgba(255,255,255,.65));
+      background:linear-gradient(90deg, rgba(255,255,255,.94), rgba(255,255,255,.65));
       box-shadow:0 0 18px rgba(255,255,255,.22);
       transition:width .08s linear;
     }
@@ -288,16 +285,51 @@
 
     .chapter-list{
       display:none;
-      padding:0 10px 10px;
+      padding:0 10px 12px;
       gap:8px;
-      max-height:260px;
-      overflow:auto;
-      overscroll-behavior:contain;
-      -webkit-overflow-scrolling:touch;
     }
 
     .work-block.open .chapter-list{
       display:grid;
+    }
+
+    .chapter-scroll-shell{
+      margin:0 0 0;
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:16px;
+      background:rgba(255,255,255,.035);
+      overflow:hidden;
+    }
+
+    .chapter-scroll-grabber{
+      min-height:48px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      padding:8px 12px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.06);
+      color:var(--muted);
+      font-size:14px;
+      line-height:1;
+      user-select:none;
+    }
+
+    .chapter-scroll-grabber::before{
+      content:"↕";
+      font-size:22px;
+      line-height:1;
+    }
+
+    .chapter-scroll-track{
+      max-height:260px;
+      overflow-y:auto;
+      overscroll-behavior:contain;
+      -webkit-overflow-scrolling:touch;
+      padding:10px;
+      display:grid;
+      gap:8px;
     }
 
     .chapter-link{
@@ -345,7 +377,7 @@
     }
 
     .slot{
-      min-height:250px;
+      min-height:176px;
       display:flex;
       align-items:center;
       justify-content:center;
@@ -486,10 +518,6 @@
       padding:8px;
     }
 
-    .between-grid .slot:nth-child(n+2){
-      display:none !important;
-    }
-
     .end-grid{
       display:none !important;
     }
@@ -541,7 +569,7 @@
             />
 
             <div class="mobile-meta">
-              <div class="mobile-stat" id="chapterSearchStat">Ready to jump</div>
+              <div class="mobile-stat" id="chapterSearchStat">Type to search</div>
               <button class="mobile-chip" id="scrollToReaderBtn" type="button">To Reader</button>
             </div>
 
@@ -588,6 +616,45 @@
         };
       }
 
+      function clearSearchResultsIfEmpty() {
+        const input = document.getElementById("chapterSearchInput");
+        const results = document.getElementById("chapterSearchResults");
+        const stat = document.getElementById("chapterSearchStat");
+
+        if (!input || !results || !stat) return;
+
+        if (!input.value.trim()) {
+          results.innerHTML = "";
+          stat.textContent = "Type to search";
+        }
+      }
+
+      function wireChapterScrollSafety() {
+        const tracks = document.querySelectorAll(".chapter-scroll-track");
+
+        tracks.forEach(track => {
+          let moved = false;
+          let startY = 0;
+
+          track.addEventListener("touchstart", (e) => {
+            moved = false;
+            startY = e.touches[0].clientY;
+          }, { passive: true });
+
+          track.addEventListener("touchmove", (e) => {
+            const delta = Math.abs(e.touches[0].clientY - startY);
+            if (delta > 8) moved = true;
+          }, { passive: true });
+
+          track.addEventListener("click", (e) => {
+            if (moved) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          }, true);
+        });
+      }
+
       async function loadAccordion() {
         const host = document.getElementById("worksAccordion");
         if (!host) return;
@@ -607,12 +674,17 @@
             const isCurrentWork = normalizeKey(work.slug) === normalizeKey(state.dir);
 
             html += `
-              <section class="work-block${isCurrentWork ? " open" : ""}">
+              <section class="work-block">
                 <button class="work-toggle" type="button">
                   <span>${workLabel}</span>
                   <span class="caret"></span>
                 </button>
                 <div class="chapter-list">
+                  <div class="chapter-scroll-shell">
+                    <div class="chapter-scroll-grabber">
+                      <span>Scroll chapters</span>
+                    </div>
+                    <div class="chapter-scroll-track">
             `;
 
             for (const entry of (work.entries || [])) {
@@ -620,7 +692,7 @@
               const isCurrent =
                 isCurrentWork && normalizeKey(entry.slug) === normalizeKey(state.file);
 
-              const href = new URL(window.location.origin + "/mobile.html");
+              const href = new URL(window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, "/") + "mobile.html");
               href.searchParams.set("dir", work.slug);
               href.searchParams.set("file", entry.slug);
 
@@ -632,6 +704,8 @@
             }
 
             html += `
+                    </div>
+                  </div>
                 </div>
               </section>
             `;
@@ -648,6 +722,8 @@
 
             block.classList.toggle("open");
           });
+
+          wireChapterScrollSafety();
         } catch (err) {
           console.error(err);
           host.innerHTML = "";
@@ -668,6 +744,12 @@
       document.addEventListener("DOMContentLoaded", () => {
         wireMobileBits();
         loadAccordion().catch(console.error);
+        clearSearchResultsIfEmpty();
+
+        const searchInput = document.getElementById("chapterSearchInput");
+        if (searchInput) {
+          searchInput.addEventListener("input", clearSearchResultsIfEmpty);
+        }
       });
     })();
   </script>
