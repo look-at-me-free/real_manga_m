@@ -9,6 +9,21 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Handjet:wght@100..900&family=Rampart+One&family=Rubik+Iso&display=swap" rel="stylesheet">
 
+  <script>
+    (function () {
+      var isMobile =
+        /android|iphone|ipad|ipod|mobile|tablet|silk|kindle|blackberry|opera mini|iemobile/i.test(navigator.userAgent) ||
+        window.innerWidth <= 980;
+
+      if (isMobile) return;
+
+      var target = new URL(window.location.origin + "/");
+      target.search = window.location.search;
+      target.hash = window.location.hash;
+      window.location.replace(target.toString());
+    })();
+  </script>
+
   <script async src="https://a.magsrv.com/ad-provider.js"></script>
   <script>
     window.AdProvider = window.AdProvider || [];
@@ -22,7 +37,7 @@
       --muted:rgba(247,248,251,.74);
       --muted2:rgba(247,248,251,.5);
       --stroke:rgba(255,255,255,.12);
-      --stroke-strong:rgba(255,255,255,.18);
+      --strokeStrong:rgba(255,255,255,.18);
       --panel:rgba(255,255,255,.045);
       --panel2:rgba(255,255,255,.075);
       --shadow:0 18px 48px rgba(0,0,0,.42);
@@ -57,7 +72,7 @@
     }
 
     a{ color:inherit; text-decoration:none; }
-    button, input, select{ font:inherit; }
+    button, input{ font:inherit; }
 
     .page-progress{
       position:fixed;
@@ -126,7 +141,7 @@
     .mobile-copy h1{
       margin:0;
       font-family:var(--title-font);
-      font-size:clamp(1.5rem, 7vw, 2.35rem);
+      font-size:clamp(1.5rem, 7vw, 2.3rem);
       line-height:1.03;
       font-weight:400;
       letter-spacing:.01em;
@@ -147,8 +162,7 @@
       gap:10px;
     }
 
-    .mobile-search,
-    .mobile-select{
+    .mobile-search{
       width:100%;
       min-height:48px;
       padding:0 14px;
@@ -165,36 +179,9 @@
       color:rgba(247,248,251,.42);
     }
 
-    .mobile-search:focus,
-    .mobile-select:focus{
+    .mobile-search:focus{
       border-color:rgba(255,255,255,.3);
       box-shadow:0 0 0 4px rgba(255,255,255,.06);
-    }
-
-    .mobile-select-wrap{
-      position:relative;
-    }
-
-    .mobile-select{
-      appearance:none;
-      -webkit-appearance:none;
-      padding-right:44px;
-      cursor:pointer;
-      touch-action:manipulation;
-    }
-
-    .mobile-select-wrap::after{
-      content:"";
-      position:absolute;
-      right:16px;
-      top:50%;
-      width:10px;
-      height:10px;
-      border-right:2px solid rgba(255,255,255,.8);
-      border-bottom:2px solid rgba(255,255,255,.8);
-      transform:translateY(-65%) rotate(45deg);
-      pointer-events:none;
-      opacity:.9;
     }
 
     .mobile-meta{
@@ -250,6 +237,85 @@
       text-align:left;
       font-family:var(--pill-font);
       letter-spacing:.02em;
+    }
+
+    .works-accordion{
+      display:grid;
+      gap:8px;
+    }
+
+    .work-block{
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:16px;
+      background:rgba(255,255,255,.04);
+      overflow:hidden;
+    }
+
+    .work-toggle{
+      appearance:none;
+      width:100%;
+      border:0;
+      background:transparent;
+      color:var(--ink);
+      padding:14px 16px;
+      text-align:left;
+      font-size:18px;
+      line-height:1.1;
+      font-family:var(--pill-font);
+      letter-spacing:.02em;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      cursor:pointer;
+    }
+
+    .work-toggle .caret{
+      flex:0 0 auto;
+      width:10px;
+      height:10px;
+      border-right:2px solid rgba(255,255,255,.8);
+      border-bottom:2px solid rgba(255,255,255,.8);
+      transform:rotate(45deg);
+      transition:transform .18s ease;
+      margin-top:-4px;
+    }
+
+    .work-block.open .work-toggle .caret{
+      transform:rotate(225deg);
+      margin-top:2px;
+    }
+
+    .chapter-list{
+      display:none;
+      padding:0 10px 10px;
+      gap:8px;
+      max-height:260px;
+      overflow:auto;
+      overscroll-behavior:contain;
+      -webkit-overflow-scrolling:touch;
+    }
+
+    .work-block.open .chapter-list{
+      display:grid;
+    }
+
+    .chapter-link{
+      display:block;
+      padding:11px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.05);
+      font-size:14px;
+      line-height:1.2;
+      font-family:var(--pill-font);
+      letter-spacing:.02em;
+    }
+
+    .chapter-link.current{
+      background:#dfe6ff;
+      color:#0a0d14;
+      border-color:transparent;
     }
 
     .layout{
@@ -410,7 +476,7 @@
 
     .between-grid{
       display:grid;
-      grid-template-columns:1fr;
+      grid-template-columns:1fr !important;
       gap:10px;
       width:100%;
     }
@@ -418,6 +484,10 @@
     .between-grid .slot{
       min-height:250px;
       padding:8px;
+    }
+
+    .between-grid .slot:nth-child(n+2){
+      display:none !important;
     }
 
     .end-grid{
@@ -434,7 +504,7 @@
       height:16px;
     }
 
-    @media (min-width: 700px){
+    @media (min-width:700px){
       .mobile-shell{
         padding-left:14px;
         padding-right:14px;
@@ -458,7 +528,7 @@
           <div class="mobile-copy">
             <p class="mobile-eyebrow">Archive Reader</p>
             <h1 id="workTitle">Loading…</h1>
-            <p>Compact mode. Clean scroll. Between-page ads only.</p>
+            <p>Simple, compact, and built to scroll.</p>
           </div>
 
           <div class="mobile-tools">
@@ -470,18 +540,14 @@
               autocomplete="off"
             />
 
-            <div class="mobile-select-wrap">
-              <select id="mobileJumpSelect" class="mobile-select" aria-label="Jump to chapter">
-                <option value="">Loading navigation…</option>
-              </select>
-            </div>
-
             <div class="mobile-meta">
               <div class="mobile-stat" id="chapterSearchStat">Ready to jump</div>
               <button class="mobile-chip" id="scrollToReaderBtn" type="button">To Reader</button>
             </div>
 
             <div class="search-results" id="chapterSearchResults"></div>
+
+            <div class="works-accordion" id="worksAccordion"></div>
           </div>
         </div>
       </div>
@@ -511,7 +577,7 @@
           .replace(/[_-]+/g, " ")
           .replace(/\s+/g, " ")
           .trim()
-          .replace(/\\b\\w/g, ch => ch.toUpperCase());
+          .replace(/\b\w/g, ch => ch.toUpperCase());
       }
 
       function getQueryState() {
@@ -522,9 +588,9 @@
         };
       }
 
-      async function loadMobileSelect() {
-        const select = document.getElementById("mobileJumpSelect");
-        if (!select) return;
+      async function loadAccordion() {
+        const host = document.getElementById("worksAccordion");
+        if (!host) return;
 
         try {
           const res = await fetch(LIBRARY_FILE, { cache: "no-store" });
@@ -534,50 +600,62 @@
           const works = Array.isArray(data.works) ? data.works : [];
           const state = getQueryState();
 
-          let html = '<option value="">Jump to chapter…</option>';
+          let html = "";
 
           for (const work of works) {
             const workLabel = work.display || titleCaseSlug(work.slug);
-            html += `<optgroup label="${workLabel.replace(/"/g, "&quot;")}">`;
+            const isCurrentWork = normalizeKey(work.slug) === normalizeKey(state.dir);
+
+            html += `
+              <section class="work-block${isCurrentWork ? " open" : ""}">
+                <button class="work-toggle" type="button">
+                  <span>${workLabel}</span>
+                  <span class="caret"></span>
+                </button>
+                <div class="chapter-list">
+            `;
 
             for (const entry of (work.entries || [])) {
               const entryLabel = entry.subtitle || titleCaseSlug(entry.slug);
-              const value = `${work.slug}|||${entry.slug}`;
-              const selected =
-                normalizeKey(work.slug) === normalizeKey(state.dir) &&
-                normalizeKey(entry.slug) === normalizeKey(state.file)
-                  ? " selected"
-                  : "";
+              const isCurrent =
+                isCurrentWork && normalizeKey(entry.slug) === normalizeKey(state.file);
 
-              html += `<option value="${value.replace(/"/g, "&quot;")}"${selected}>${workLabel} · ${entryLabel.replace(/</g, "&lt;")}</option>`;
+              const href = new URL(window.location.origin + "/mobile.html");
+              href.searchParams.set("dir", work.slug);
+              href.searchParams.set("file", entry.slug);
+
+              html += `
+                <a class="chapter-link${isCurrent ? " current" : ""}" href="${href.toString()}">
+                  ${workLabel} · ${entryLabel}
+                </a>
+              `;
             }
 
-            html += "</optgroup>";
+            html += `
+                </div>
+              </section>
+            `;
           }
 
-          select.innerHTML = html;
+          host.innerHTML = html;
+
+          host.addEventListener("click", (e) => {
+            const btn = e.target.closest(".work-toggle");
+            if (!btn) return;
+
+            const block = btn.closest(".work-block");
+            if (!block) return;
+
+            block.classList.toggle("open");
+          });
         } catch (err) {
           console.error(err);
-          select.innerHTML = '<option value="">Failed to load navigation</option>';
+          host.innerHTML = "";
         }
       }
 
       function wireMobileBits() {
-        const select = document.getElementById("mobileJumpSelect");
         const toReaderBtn = document.getElementById("scrollToReaderBtn");
-
-        if (select) {
-          select.addEventListener("change", () => {
-            const raw = select.value || "";
-            if (!raw.includes("|||")) return;
-
-            const [dir, file] = raw.split("|||");
-            const url = new URL(window.location.href);
-            url.searchParams.set("dir", dir);
-            url.searchParams.set("file", file);
-            window.location.href = url.toString();
-          });
-        }
 
         if (toReaderBtn) {
           toReaderBtn.addEventListener("click", () => {
@@ -589,7 +667,7 @@
 
       document.addEventListener("DOMContentLoaded", () => {
         wireMobileBits();
-        loadMobileSelect().catch(console.error);
+        loadAccordion().catch(console.error);
       });
     })();
   </script>
