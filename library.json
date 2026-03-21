@@ -1960,7 +1960,7 @@
     "id":  18334,
     "slug":  "Triage_X",
     "display":  "Triage X",
-    "top_pill":  false,
+    "top_pill":  true,
     "source":  "d",
     "entries":  [
                     {
