@@ -111,7 +111,8 @@ jobs:
           }
 
           if (-not (Test-Path -LiteralPath $worksFolder)) {
-              throw "uploaded_works folder was not found at repo root."
+              Write-Host "uploaded_works folder was not found at repo root. Nothing to merge."
+              exit 0
           }
 
           $library = Read-Json -Path $libraryPath
@@ -125,20 +126,46 @@ jobs:
               [void]$worksList.Add($w)
           }
 
-          $files = Get-ChildItem -LiteralPath $worksFolder -Filter *.json -File
+          $files = Get-ChildItem -LiteralPath $worksFolder -Filter *.json -File -ErrorAction SilentlyContinue
 
-          if ($files.Count -eq 0) {
+          if (-not $files -or $files.Count -eq 0) {
               Write-Host "No uploaded work files found."
               exit 0
           }
 
+          $processedFiles = New-Object System.Collections.ArrayList
+
           foreach ($file in $files) {
               Write-Host "Processing $($file.Name)"
-              $block = Read-Json -Path $file.FullName
+
+              try {
+                  $block = Read-Json -Path $file.FullName
+              }
+              catch {
+                  Write-Host "Skipping invalid file: $($file.Name)"
+                  Write-Host $_.Exception.Message
+                  continue
+              }
+
               $newWorks = Normalize-Works -block $block
 
+              if (-not $newWorks -or $newWorks.Count -eq 0) {
+                  Write-Host "No works found in $($file.Name). Skipping."
+                  continue
+              }
+
+              $fileSucceeded = $true
+
               foreach ($work in $newWorks) {
-                  Validate-Work -work $work -sourceFile $file.Name
+                  try {
+                      Validate-Work -work $work -sourceFile $file.Name
+                  }
+                  catch {
+                      Write-Host "Skipping invalid work in $($file.Name)"
+                      Write-Host $_.Exception.Message
+                      $fileSucceeded = $false
+                      continue
+                  }
 
                   $existingIndex = -1
                   for ($i = 0; $i -lt $worksList.Count; $i++) {
@@ -157,21 +184,43 @@ jobs:
                       Write-Host "Added new work: $($work.slug)"
                   }
               }
+
+              if ($fileSucceeded) {
+                  [void]$processedFiles.Add($file.FullName)
+              } else {
+                  Write-Host "Leaving file in place because at least one work in it was invalid: $($file.Name)"
+              }
           }
 
           $library.works = $worksList
           $library | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $outputPath -Encoding UTF8
 
+          $processedFiles | Set-Content -LiteralPath ".processed_uploaded_works.txt" -Encoding UTF8
+
       - name: Remove processed uploaded work files
         shell: pwsh
         run: |
-          $files = Get-ChildItem -LiteralPath "uploaded_works" -Filter *.json -File -ErrorAction SilentlyContinue
-          if ($files) {
-              Remove-Item -LiteralPath $files.FullName -Force
-              Write-Host "Removed processed uploaded_works JSON files."
-          } else {
-              Write-Host "No uploaded work files to remove."
+          if (-not (Test-Path -LiteralPath ".processed_uploaded_works.txt")) {
+              Write-Host "No processed file list found."
+              exit 0
           }
+
+          $files = Get-Content -LiteralPath ".processed_uploaded_works.txt" -Encoding UTF8
+
+          if (-not $files) {
+              Write-Host "No uploaded work files to remove."
+              Remove-Item -LiteralPath ".processed_uploaded_works.txt" -Force -ErrorAction SilentlyContinue
+              exit 0
+          }
+
+          foreach ($file in $files) {
+              if (Test-Path -LiteralPath $file) {
+                  Remove-Item -LiteralPath $file -Force
+                  Write-Host "Removed processed file: $file"
+              }
+          }
+
+          Remove-Item -LiteralPath ".processed_uploaded_works.txt" -Force -ErrorAction SilentlyContinue
 
       - name: Commit updated library.json
         shell: pwsh
@@ -179,7 +228,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add library.json uploaded_works
+          git add library.json uploaded_works .processed_uploaded_works.txt
 
           $changes = git diff --cached --name-only
           if (-not $changes) {
