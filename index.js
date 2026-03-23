@@ -5,12 +5,21 @@
   const DEFAULT_WORKS_BASE = "https://pub-cd01009a7c6c464aa0b093e33aa5ae51.r2.dev/works";
   const ITEM_JSON_NAME = "item.json";
   const BOTTOM_AD_COUNT = 6;
-  const RAIL_REFRESH_MS = 75000;
-  const BANNER_REFRESH_MS = 95000;
+
+  // More aggressive than the original, but still not absurd.
+  const RAIL_REFRESH_MS = 45000;
+  const BANNER_REFRESH_MS = 60000;
+  const BETWEEN_REFRESH_MS = 50000;
+
   const READ_PROGRESS_PREFETCH = 0.7;
   const BOTTOM_GLOW_PROGRESS = 0.95;
   const SEARCH_RESULTS_LIMIT = 12;
   const IS_MOBILE_READER = document.body?.dataset?.readerMode === "mobile";
+
+  // Guardrails for ad serving / refreshing.
+  const MIN_GLOBAL_SERVE_GAP_MS = 1200;
+  const MIN_SLOT_REFRESH_GAP_MS = 30000;
+  const VIEWPORT_THRESHOLD = 0.2;
 
   const ZONES = {
     topBanner: 5865232,
@@ -40,12 +49,18 @@
   let searchWired = false;
   let railRefreshTimer = null;
   let bannerRefreshTimer = null;
+  let betweenRefreshTimer = null;
   let nextPrefetch = null;
   let progressWatchWired = false;
   let bottomGlowTriggered = false;
   let mobileWorksWired = false;
   let mobileOpenWorkSlug = "";
   let dialWired = false;
+
+  let adServeScheduled = false;
+  let lastServeAt = 0;
+  let adVisibilityObserver = null;
+  let adActionBurstCooldownUntil = 0;
 
   function $(sel, root = document) {
     return root.querySelector(sel);
@@ -78,6 +93,49 @@
 
   function normalizeBaseUrl(url) {
     return String(url || "").replace(/\/+$/, "");
+  }
+
+  function now() {
+    return Date.now();
+  }
+
+  function isElementInViewport(el, threshold = VIEWPORT_THRESHOLD) {
+    if (!el || !el.isConnected) return false;
+
+    const rect = el.getBoundingClientRect();
+    const vw = window.innerWidth || document.documentElement.clientWidth;
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+
+    if (rect.width <= 0 || rect.height <= 0) return false;
+    if (rect.bottom <= 0 || rect.right <= 0 || rect.top >= vh || rect.left >= vw) return false;
+
+    const visibleX = Math.max(0, Math.min(rect.right, vw) - Math.max(rect.left, 0));
+    const visibleY = Math.max(0, Math.min(rect.bottom, vh) - Math.max(rect.top, 0));
+    const visibleArea = visibleX * visibleY;
+    const totalArea = rect.width * rect.height;
+    if (totalArea <= 0) return false;
+
+    return (visibleArea / totalArea) >= threshold;
+  }
+
+  function canRefreshSlot(el) {
+    if (!el) return false;
+    const last = Number(el.dataset.lastRefreshAt || 0);
+    return (now() - last) >= MIN_SLOT_REFRESH_GAP_MS;
+  }
+
+  function stampSlotRefresh(el) {
+    if (!el) return;
+    el.dataset.lastRefreshAt = String(now());
+  }
+
+  function markSlotSeen(el) {
+    if (!el) return;
+    el.dataset.seen = "1";
+  }
+
+  function wasSlotSeen(el) {
+    return !!el && el.dataset.seen === "1";
   }
 
   function resolveSourceKey(work, entry) {
@@ -213,8 +271,37 @@
     syncDialThumb();
   }
 
-  function serveAds() {
+  function rawServeAds() {
     (window.AdProvider = window.AdProvider || []).push({ serve: {} });
+    lastServeAt = now();
+    adServeScheduled = false;
+  }
+
+  function serveAds(force = false) {
+    const elapsed = now() - lastServeAt;
+
+    if (force || elapsed >= MIN_GLOBAL_SERVE_GAP_MS) {
+      rawServeAds();
+      return;
+    }
+
+    if (adServeScheduled) return;
+    adServeScheduled = true;
+
+    window.setTimeout(() => {
+      rawServeAds();
+    }, Math.max(0, MIN_GLOBAL_SERVE_GAP_MS - elapsed));
+  }
+
+  function burstServeAds() {
+    if (document.hidden) return;
+
+    // Prevent action spam from triggering too many bursts back-to-back.
+    if (now() < adActionBurstCooldownUntil) return;
+    adActionBurstCooldownUntil = now() + 3500;
+
+    serveAds(true);
+    window.setTimeout(() => serveAds(true), 700);
   }
 
   function makeIns(zoneId, sub = 1, sub2 = 1, sub3 = 1) {
@@ -231,12 +318,45 @@
     if (!el) return;
     el.innerHTML = "";
     el.appendChild(makeIns(zoneId, sub, sub2, sub3));
+    stampSlotRefresh(el);
   }
 
   function fillSlot(el, zoneId, sub = 1, sub2 = 1, sub3 = 1) {
     if (!el) return;
     refillSlot(el, zoneId, sub, sub2, sub3);
     serveAds();
+  }
+
+  function refillSlotIfVisible(el, zoneId, sub = 1, sub2 = 1, sub3 = 1) {
+    if (!el || document.hidden) return false;
+    if (!isElementInViewport(el)) return false;
+    if (!canRefreshSlot(el)) return false;
+
+    refillSlot(el, zoneId, sub, sub2, sub3);
+    markSlotSeen(el);
+    return true;
+  }
+
+  function setupAdVisibilityObserver() {
+    if (adVisibilityObserver) {
+      adVisibilityObserver.disconnect();
+      adVisibilityObserver = null;
+    }
+
+    adVisibilityObserver = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting && entry.target) {
+          markSlotSeen(entry.target);
+        }
+      }
+    }, {
+      root: null,
+      threshold: [0.2, 0.5]
+    });
+
+    $$(".slot, .top-banner-inner").forEach(el => {
+      adVisibilityObserver.observe(el);
+    });
   }
 
   async function fetchJson(url) {
@@ -351,7 +471,13 @@
 
     for (let i = 1; i <= slotCount; i++) {
       const slot = document.createElement("div");
-      slot.className = "slot";
+      slot.className = "slot between-slot";
+      slot.dataset.zoneType = "between";
+      slot.dataset.zoneId = String(ZONES.betweenMulti);
+      slot.dataset.sub = String(subids.between);
+      slot.dataset.sub2 = String(subids.work);
+      slot.dataset.sub3 = String(Number(`${groupNumber}${i}`));
+
       slot.appendChild(
         makeIns(ZONES.betweenMulti, subids.between, subids.work, Number(`${groupNumber}${i}`))
       );
@@ -369,7 +495,13 @@
 
     for (let i = 1; i <= count; i++) {
       const slot = document.createElement("div");
-      slot.className = "slot";
+      slot.className = "slot between-slot";
+      slot.dataset.zoneType = "between";
+      slot.dataset.zoneId = String(ZONES.betweenMulti);
+      slot.dataset.sub = String(subids.between);
+      slot.dataset.sub2 = String(subids.work);
+      slot.dataset.sub3 = String(9000 + i);
+
       slot.appendChild(makeIns(ZONES.betweenMulti, subids.between, subids.work, 9000 + i));
       wrap.appendChild(slot);
     }
@@ -466,6 +598,10 @@
 
     input.addEventListener("input", refresh);
 
+    input.addEventListener("focus", () => {
+      burstServeAds();
+    });
+
     results.addEventListener("click", async (e) => {
       const btn = e.target.closest("button[data-dir][data-file]");
       if (!btn) return;
@@ -478,7 +614,8 @@
         setMobileOpenWork(btn.dataset.dir);
       }
 
-      await switchEntry(btn.dataset.dir, btn.dataset.file, false);
+      burstServeAds();
+      await switchEntry(btn.dataset.dir, btn.dataset.file, false, { actionSource: "search" });
 
       if (IS_MOBILE_READER) {
         scrollToReaderTop();
@@ -593,11 +730,12 @@
 
     nav.innerHTML = html;
 
-    nav.onclick = (e) => {
+    nav.onclick = async (e) => {
       const a = e.target.closest("a[data-dir][data-file]");
       if (!a) return;
       e.preventDefault();
-      switchEntry(a.dataset.dir, a.dataset.file, false);
+      burstServeAds();
+      await switchEntry(a.dataset.dir, a.dataset.file, false, { actionSource: "top-nav" });
     };
   }
 
@@ -614,7 +752,10 @@
         e.preventDefault();
         const wasOpen = item.classList.contains("open");
         $$(".topworks-item.open").forEach(x => x.classList.remove("open"));
-        if (!wasOpen) item.classList.add("open");
+        if (!wasOpen) {
+          item.classList.add("open");
+          burstServeAds();
+        }
         return;
       }
 
@@ -640,6 +781,7 @@
 
         setMobileOpenWork(isAlreadyOpen ? "" : slug);
         syncDialThumb();
+        burstServeAds();
         return;
       }
 
@@ -650,7 +792,8 @@
       const file = chapterBtn.dataset.file;
 
       setMobileOpenWork(dir);
-      await switchEntry(dir, file, false);
+      burstServeAds();
+      await switchEntry(dir, file, false, { actionSource: "mobile-nav" });
       scrollToReaderTop();
     });
   }
@@ -709,20 +852,23 @@
       bar.appendChild(
         makeTraversalPill(
           "← Previous",
-          prev ? () => switchEntry(CURRENT_WORK.slug, prev.slug, false) : null,
+          prev ? () => switchEntry(CURRENT_WORK.slug, prev.slug, false, { actionSource: "mobile-prev" }) : null,
           "",
           !prev
         )
       );
 
       bar.appendChild(
-        makeTraversalPill("Search", () => scrollToSearchBar())
+        makeTraversalPill("Search", () => {
+          burstServeAds();
+          scrollToSearchBar();
+        })
       );
 
       bar.appendChild(
         makeTraversalPill(
           "Next →",
-          next ? () => switchEntry(CURRENT_WORK.slug, next.slug, false) : null,
+          next ? () => switchEntry(CURRENT_WORK.slug, next.slug, false, { actionSource: "mobile-next" }) : null,
           "",
           !next
         )
@@ -733,19 +879,19 @@
     }
 
     if (prev) {
-      bar.appendChild(makeTraversalPill("← Previous", () => switchEntry(CURRENT_WORK.slug, prev.slug, false)));
+      bar.appendChild(makeTraversalPill("← Previous", () => switchEntry(CURRENT_WORK.slug, prev.slug, false, { actionSource: "prev" })));
     }
 
     for (const entry of entries) {
       const isCurrent = normalizeKey(entry.slug) === normalizeKey(CURRENT_ENTRY?.slug);
       const label = entry.subtitle || titleCaseSlug(entry.slug);
       bar.appendChild(
-        makeTraversalPill(label, () => switchEntry(CURRENT_WORK.slug, entry.slug, false), isCurrent ? "current" : "")
+        makeTraversalPill(label, () => switchEntry(CURRENT_WORK.slug, entry.slug, false, { actionSource: "chapter-pill" }), isCurrent ? "current" : "")
       );
     }
 
     if (next) {
-      bar.appendChild(makeTraversalPill("Next →", () => switchEntry(CURRENT_WORK.slug, next.slug, false)));
+      bar.appendChild(makeTraversalPill("Next →", () => switchEntry(CURRENT_WORK.slug, next.slug, false, { actionSource: "next" })));
     }
 
     shell.appendChild(bar);
@@ -770,6 +916,7 @@
     if (bottomBtn && clamped >= BOTTOM_GLOW_PROGRESS && !bottomGlowTriggered) {
       bottomGlowTriggered = true;
       bottomBtn.classList.add("pulse");
+      burstServeAds();
     }
 
     if (bottomBtn && clamped < BOTTOM_GLOW_PROGRESS) {
@@ -787,12 +934,14 @@
 
     if (topBtn) {
       topBtn.addEventListener("click", () => {
+        burstServeAds();
         scrollToSearchBar();
       });
     }
 
     if (bottomBtn) {
       bottomBtn.addEventListener("click", () => {
+        burstServeAds();
         const target = document.getElementById("bottomTraversal") || document.getElementById("readerBottomAnchor");
         if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
       });
@@ -802,8 +951,61 @@
   function clearRefreshTimers() {
     if (railRefreshTimer) clearInterval(railRefreshTimer);
     if (bannerRefreshTimer) clearInterval(bannerRefreshTimer);
+    if (betweenRefreshTimer) clearInterval(betweenRefreshTimer);
     railRefreshTimer = null;
     bannerRefreshTimer = null;
+    betweenRefreshTimer = null;
+  }
+
+  function refreshVisibleRailSlots() {
+    if (document.hidden || !CURRENT_ITEM || IS_MOBILE_READER) return false;
+
+    const subids = getSubids(CURRENT_ITEM);
+    let refreshed = false;
+
+    LEFT_RAIL_IDS.forEach((id, index) => {
+      const ok = refillSlotIfVisible(document.getElementById(id), ZONES.leftRail, subids.left, subids.work, index + 1);
+      refreshed = refreshed || ok;
+    });
+
+    RIGHT_RAIL_IDS.forEach((id, index) => {
+      const ok = refillSlotIfVisible(document.getElementById(id), ZONES.rightRail, subids.right, subids.work, index + 1);
+      refreshed = refreshed || ok;
+    });
+
+    if (refreshed) serveAds();
+    return refreshed;
+  }
+
+  function refreshVisibleTopBanner() {
+    if (document.hidden || !CURRENT_ITEM || IS_MOBILE_READER) return false;
+
+    const subids = getSubids(CURRENT_ITEM);
+    const el = document.getElementById("topBannerSlot");
+    const refreshed = refillSlotIfVisible(el, ZONES.topBanner, subids.top, subids.work, 1);
+
+    if (refreshed) serveAds();
+    return refreshed;
+  }
+
+  function refreshVisibleBetweenSlots() {
+    if (document.hidden || !CURRENT_ITEM) return false;
+
+    let refreshed = false;
+
+    $$(".between-slot").forEach((el) => {
+      const zoneId = Number(el.dataset.zoneId || 0);
+      const sub = Number(el.dataset.sub || 1);
+      const sub2 = Number(el.dataset.sub2 || 1);
+      const sub3 = Number(el.dataset.sub3 || 1);
+      if (!zoneId) return;
+
+      const ok = refillSlotIfVisible(el, zoneId, sub, sub2, sub3);
+      refreshed = refreshed || ok;
+    });
+
+    if (refreshed) serveAds();
+    return refreshed;
   }
 
   function startRefreshTimers() {
@@ -812,28 +1014,16 @@
     if (IS_MOBILE_READER) return;
 
     railRefreshTimer = window.setInterval(() => {
-      if (document.hidden || !CURRENT_ITEM) return;
-
-      const subids = getSubids(CURRENT_ITEM);
-
-      LEFT_RAIL_IDS.forEach((id, index) => {
-        refillSlot(document.getElementById(id), ZONES.leftRail, subids.left, subids.work, index + 1);
-      });
-
-      RIGHT_RAIL_IDS.forEach((id, index) => {
-        refillSlot(document.getElementById(id), ZONES.rightRail, subids.right, subids.work, index + 1);
-      });
-
-      serveAds();
+      refreshVisibleRailSlots();
     }, RAIL_REFRESH_MS);
 
     bannerRefreshTimer = window.setInterval(() => {
-      if (document.hidden || !CURRENT_ITEM) return;
-
-      const subids = getSubids(CURRENT_ITEM);
-      refillSlot(document.getElementById("topBannerSlot"), ZONES.topBanner, subids.top, subids.work, 1);
-      serveAds();
+      refreshVisibleTopBanner();
     }, BANNER_REFRESH_MS);
+
+    betweenRefreshTimer = window.setInterval(() => {
+      refreshVisibleBetweenSlots();
+    }, BETWEEN_REFRESH_MS);
   }
 
   function maybePreloadNextChapter() {
@@ -860,20 +1050,46 @@
       .catch(() => null);
   }
 
+  function maybeServeVisibleReaderAds() {
+    let refreshed = false;
+    refreshed = refreshVisibleBetweenSlots() || refreshed;
+    refreshed = refreshVisibleRailSlots() || refreshed;
+    refreshed = refreshVisibleTopBanner() || refreshed;
+
+    if (!refreshed) {
+      const visibleBetween = $$(".between-slot").some(el => isElementInViewport(el));
+      if (visibleBetween) {
+        serveAds();
+      }
+    }
+  }
+
   function wireProgressWatch() {
     if (progressWatchWired) return;
     progressWatchWired = true;
 
-    window.addEventListener("scroll", () => {
-      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
-      const progress = scrollable > 0 ? window.scrollY / scrollable : 0;
+    let ticking = false;
 
-      updateChapterProgress(progress);
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
 
-      if (progress >= READ_PROGRESS_PREFETCH) {
-        maybePreloadNextChapter();
-      }
-    }, { passive: true });
+      window.requestAnimationFrame(() => {
+        const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = scrollable > 0 ? window.scrollY / scrollable : 0;
+
+        updateChapterProgress(progress);
+
+        if (progress >= READ_PROGRESS_PREFETCH) {
+          maybePreloadNextChapter();
+        }
+
+        maybeServeVisibleReaderAds();
+        ticking = false;
+      });
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
   }
 
   function buildChapterMeta(manifest, imageCount) {
@@ -1025,24 +1241,78 @@
     bottomAnchor.className = "reader-anchor";
     reader.appendChild(bottomAnchor);
 
-    serveAds();
+    setupAdVisibilityObserver();
+    serveAds(true);
     startRefreshTimers();
     updateChapterProgress(0);
+
+    // Extra serve shortly after build so lazy content / inserted ins blocks get another pass.
+    window.setTimeout(() => serveAds(true), 900);
 
     if (IS_MOBILE_READER) {
       syncDialThumb();
     }
   }
 
-  async function switchEntry(dir, file, replace = false) {
+  async function switchEntry(dir, file, replace = false, options = {}) {
+    const { actionSource = "unknown" } = options;
+
     setQueryState(dir, file, replace);
+
+    // Action-triggered ad burst before rebuild.
+    if (actionSource) {
+      burstServeAds();
+    }
+
     await buildReader();
+
+    // Action-triggered ad burst after rebuild.
+    if (actionSource) {
+      window.setTimeout(() => burstServeAds(), 600);
+    }
 
     if (IS_MOBILE_READER) {
       scrollToReaderTop();
     } else {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
+  }
+
+  function wireDocumentVisibility() {
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) return;
+
+      // When the tab becomes visible again, re-serve and refresh visible slots.
+      serveAds(true);
+      window.setTimeout(() => {
+        refreshVisibleTopBanner();
+        refreshVisibleRailSlots();
+        refreshVisibleBetweenSlots();
+      }, 400);
+    });
+  }
+
+  function wireReaderClickMonetization() {
+    document.addEventListener("click", (e) => {
+      const target = e.target;
+      if (!(target instanceof Element)) return;
+
+      const hotSelectors = [
+        ".image-wrap img",
+        ".topworks-link",
+        ".topworks-trigger",
+        ".search-result-pill",
+        ".traversal-pill",
+        ".mobile-work-trigger",
+        ".mobile-chapter-link",
+        "#scrollToSearchBtn",
+        "#scrollToBottomTraversalBtn"
+      ];
+
+      if (hotSelectors.some(sel => target.closest(sel))) {
+        burstServeAds();
+      }
+    }, { passive: true });
   }
 
   async function boot() {
@@ -1054,6 +1324,8 @@
     wireSearch();
     wireMobileWorksNav();
     wireMobileDial();
+    wireDocumentVisibility();
+    wireReaderClickMonetization();
 
     await buildReader();
 
