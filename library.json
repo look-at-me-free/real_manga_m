@@ -3282,6 +3282,74 @@
                         "subtitle":  "Volume 1 - Chapter 9"
                     }
                 ]
+},{
+  "id": 1214,
+  "slug": "I_Am_A_Hero",
+  "display": "I Am A Hero",
+  "top_pill": true,
+  "source": "d",
+  "entries": [
+    {
+      "slug": "v1_c1",
+      "path": "volume_1/chapter_1",
+      "type": "chapter",
+      "subtitle": "Volume 1 - Chapter 1"
+    },
+    {
+      "slug": "v1_c2",
+      "path": "volume_1/chapter_2",
+      "type": "chapter",
+      "subtitle": "Volume 1 - Chapter 2"
+    },
+    {
+      "slug": "v1_c3",
+      "path": "volume_1/chapter_3",
+      "type": "chapter",
+      "subtitle": "Volume 1 - Chapter 3"
+    },
+    {
+      "slug": "v1_c4",
+      "path": "volume_1/chapter_4",
+      "type": "chapter",
+      "subtitle": "Volume 1 - Chapter 4"
+    },
+    {
+      "slug": "v1_c5",
+      "path": "volume_1/chapter_5",
+      "type": "chapter",
+      "subtitle": "Volume 1 - Chapter 5"
+    },
+    {
+      "slug": "v1_c6",
+      "path": "volume_1/chapter_6",
+      "type": "chapter",
+      "subtitle": "Volume 1 - Chapter 6"
+    },
+    {
+      "slug": "v1_c7",
+      "path": "volume_1/chapter_7",
+      "type": "chapter",
+      "subtitle": "Volume 1 - Chapter 7"
+    },
+    {
+      "slug": "v1_c8",
+      "path": "volume_1/chapter_8",
+      "type": "chapter",
+      "subtitle": "Volume 1 - Chapter 8"
+    },
+    {
+      "slug": "v1_c9",
+      "path": "volume_1/chapter_9",
+      "type": "chapter",
+      "subtitle": "Volume 1 - Chapter 9"
+    },
+    {
+      "slug": "v1_c10",
+      "path": "volume_1/chapter_10",
+      "type": "chapter",
+      "subtitle": "Volume 1 - Chapter 10"
+    }
+  ]
 },
         {
       "id": 1001,
