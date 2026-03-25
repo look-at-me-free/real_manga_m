@@ -1,6 +1,10 @@
 (() => {
   "use strict";
 
+  // ============================================================
+  // Config
+  // ============================================================
+
   const LIBRARY_FILE = "library.json";
   const DEFAULT_WORKS_BASE = "https://pub-cd01009a7c6c464aa0b093e33aa5ae51.r2.dev/works";
   const ITEM_JSON_NAME = "item.json";
@@ -23,8 +27,6 @@
 
   const TOP_COMPACT_RADIUS = 5;
   const BOTTOM_COMPACT_RADIUS = 5;
-  const STICKY_CONTINUE_THRESHOLD = 0.985;
-  const PROGRESS_END_EARLY_PX = 140;
 
   const ZONES = {
     topBanner: 5865232,
@@ -71,6 +73,10 @@
     "rightRailSlot7","rightRailSlot8","rightRailSlot9","rightRailSlot10","rightRailSlot11","rightRailSlot12"
   ];
 
+  // ============================================================
+  // State
+  // ============================================================
+
   let ARCHIVE_WORKS = [];
   let SOURCE_MAP = {};
   let CURRENT_WORK = null;
@@ -89,6 +95,7 @@
   let mobileWorksWired = false;
   let mobileOpenWorkSlug = "";
   let dialWired = false;
+  let keyboardNavWired = false;
 
   let adServeScheduled = false;
   let lastServeAt = 0;
@@ -100,6 +107,10 @@
   let retentionToastTimer = null;
 
   const providerLoadPromises = new Map();
+
+  // ============================================================
+  // Helpers
+  // ============================================================
 
   function $(sel, root = document) {
     return root.querySelector(sel);
@@ -143,10 +154,10 @@
   }
 
   function injectEnhancementStyles() {
-    if (document.getElementById("readerEnhancementStyles")) return;
+    if (document.getElementById("reader-enhancement-styles")) return;
 
     const style = document.createElement("style");
-    style.id = "readerEnhancementStyles";
+    style.id = "reader-enhancement-styles";
     style.textContent = `
       .traversal-bar.compact {
         display: flex;
@@ -154,26 +165,30 @@
         gap: 10px;
         flex-wrap: wrap;
       }
-      .traversal-gap {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 32px;
-        padding: 0 4px;
-        opacity: .7;
-        font-size: 18px;
-      }
+
       .traversal-pills-window {
         display: inline-flex;
         align-items: center;
         gap: 10px;
         flex-wrap: wrap;
       }
+
+      .traversal-gap {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 20px;
+        opacity: 0.7;
+        font-size: 18px;
+        line-height: 1;
+      }
+
       .traversal-compact-footer {
         display: flex;
         flex-direction: column;
         gap: 12px;
       }
+
       .traversal-expand-toggle {
         appearance: none;
         border: 1px solid rgba(255,255,255,.14);
@@ -184,15 +199,19 @@
         cursor: pointer;
         font: inherit;
       }
+
       .traversal-expand-toggle:hover {
         background: rgba(255,255,255,.08);
       }
+
       .traversal-full-wrap {
         display: none;
       }
+
       .traversal-full-wrap.open {
         display: block;
       }
+
       .traversal-full-scroll {
         display: flex;
         gap: 10px;
@@ -201,18 +220,23 @@
         padding-bottom: 6px;
         scroll-behavior: smooth;
       }
+
       .traversal-full-scroll::-webkit-scrollbar {
         height: 10px;
       }
-      .reader-first-page-flash {
-        animation: readerFlash 420ms ease;
-      }
-      @keyframes readerFlash {
-        0% { filter: brightness(1.18); transform: translateY(0); }
-        100% { filter: brightness(1); transform: translateY(0); }
-      }
     `;
     document.head.appendChild(style);
+  }
+
+  function isTypingTarget(el) {
+    if (!el) return false;
+    const tag = el.tagName;
+    return (
+      tag === "INPUT" ||
+      tag === "TEXTAREA" ||
+      tag === "SELECT" ||
+      el.isContentEditable
+    );
   }
 
   function isElementInViewport(el, threshold = VIEWPORT_THRESHOLD) {
@@ -302,12 +326,6 @@
 
     if (target) {
       target.scrollIntoView({ behavior: "auto", block: "start" });
-      const firstImage = document.querySelector(".image-wrap");
-      if (firstImage) {
-        firstImage.classList.remove("reader-first-page-flash");
-        void firstImage.offsetWidth;
-        firstImage.classList.add("reader-first-page-flash");
-      }
     } else {
       window.scrollTo(0, 0);
     }
@@ -322,6 +340,10 @@
       target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }
+
+  // ============================================================
+  // Mobile work list
+  // ============================================================
 
   function setMobileOpenWork(workSlug) {
     mobileOpenWorkSlug = normalizeKey(workSlug || "");
@@ -402,6 +424,10 @@
 
     syncDialThumb();
   }
+
+  // ============================================================
+  // Ads
+  // ============================================================
 
   function rawServeAds() {
     (window.AdProvider = window.AdProvider || []).push({ serve: {} });
@@ -606,6 +632,10 @@
     });
   }
 
+  // ============================================================
+  // Data loading
+  // ============================================================
+
   async function fetchJson(url) {
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) {
@@ -696,6 +726,10 @@
     };
   }
 
+  // ============================================================
+  // Reader blocks
+  // ============================================================
+
   function imageBlock(src, alt) {
     const wrap = document.createElement("div");
     wrap.className = "image-wrap";
@@ -784,6 +818,10 @@
       fillSlot(document.getElementById(id), ZONES.rightRail, subids.right, subids.work, index + 1);
     });
   }
+
+  // ============================================================
+  // Search
+  // ============================================================
 
   function flattenEntries() {
     const rows = [];
@@ -911,6 +949,10 @@
     renderSearchResults(seeded);
     stat.textContent = seeded.length ? `Showing ${seeded.length} in this work` : "Ready to jump";
   }
+
+  // ============================================================
+  // Works nav
+  // ============================================================
 
   function renderWorksNav() {
     const nav = document.getElementById("worksNav");
@@ -1064,6 +1106,10 @@
     });
   }
 
+  // ============================================================
+  // Entry context
+  // ============================================================
+
   function getEntryContext() {
     const entries = Array.isArray(CURRENT_WORK?.entries) ? CURRENT_WORK.entries : [];
     const currentIndex = entries.findIndex(entry => normalizeKey(entry.slug) === normalizeKey(CURRENT_ENTRY?.slug));
@@ -1080,6 +1126,10 @@
     const { currentIndex } = getEntryContext();
     return currentIndex >= 0 ? currentIndex + 1 : 0;
   }
+
+  // ============================================================
+  // Traversal
+  // ============================================================
 
   function makeTraversalPill(label, onClick, extraClass = "", disabled = false) {
     const btn = document.createElement("button");
@@ -1105,7 +1155,7 @@
     }));
   }
 
-  function buildCompactPillWindow(entries, currentIndex, radius) {
+  function buildCompactPillWindow(entries, currentIndex, radius, sourceLabel) {
     const frag = document.createDocumentFragment();
     const windowed = buildCompactRange(entries, currentIndex, radius);
 
@@ -1123,7 +1173,7 @@
         makeTraversalPill(
           label,
           () => switchEntry(CURRENT_WORK.slug, item.entry.slug, false, {
-            actionSource: "compact-pill"
+            actionSource: sourceLabel
           }),
           isCurrent ? "current" : ""
         )
@@ -1261,12 +1311,12 @@
 
       const windowWrap = document.createElement("div");
       windowWrap.className = "traversal-pills-window";
-      windowWrap.appendChild(buildCompactPillWindow(entries, currentIndex, TOP_COMPACT_RADIUS));
+      windowWrap.appendChild(buildCompactPillWindow(entries, currentIndex, TOP_COMPACT_RADIUS, "top-compact-pill"));
       bar.appendChild(windowWrap);
 
       bar.appendChild(
         makeTraversalPill(
-          next ? "Next →" : "Next →",
+          "Next →",
           next ? () => switchEntry(CURRENT_WORK.slug, next.slug, false, { actionSource: "next" }) : null,
           "",
           !next
@@ -1301,12 +1351,12 @@
 
     const windowWrap = document.createElement("div");
     windowWrap.className = "traversal-pills-window";
-    windowWrap.appendChild(buildCompactPillWindow(entries, currentIndex, BOTTOM_COMPACT_RADIUS));
+    windowWrap.appendChild(buildCompactPillWindow(entries, currentIndex, BOTTOM_COMPACT_RADIUS, "bottom-compact-pill"));
     compactBar.appendChild(windowWrap);
 
     compactBar.appendChild(
       makeTraversalPill(
-        next ? "Next →" : "Next →",
+        "Next →",
         next ? () => switchEntry(CURRENT_WORK.slug, next.slug, false, { actionSource: "next-bottom" }) : null,
         "",
         !next
@@ -1329,13 +1379,17 @@
     return shell;
   }
 
+  // ============================================================
+  // Progress
+  // ============================================================
+
   function updateStickyBottomAction(progress = 0) {
     const btn = document.getElementById("scrollToBottomTraversalBtn");
     if (!btn) return;
 
     const { next } = getEntryContext();
 
-    if (progress >= STICKY_CONTINUE_THRESHOLD && next) {
+    if (progress >= 1 && next) {
       btn.textContent = `Continue: ${next.subtitle || titleCaseSlug(next.slug)}`;
       btn.onclick = async () => {
         burstServeAds();
@@ -1389,24 +1443,24 @@
     }, 1200);
   }
 
-  function getReadingProgressFromAnchors() {
-    const start = document.getElementById("readerContentStartAnchor");
-    const end = document.getElementById("readerContentEndAnchor");
-
-    if (!start || !end) {
+  function getReadingProgressFromPages() {
+    const pages = $$(".image-wrap");
+    if (!pages.length) {
       const scrollable = document.documentElement.scrollHeight - window.innerHeight;
       return scrollable > 0 ? window.scrollY / scrollable : 0;
     }
 
-    const startY = window.scrollY + start.getBoundingClientRect().top;
-    const endYRaw = window.scrollY + end.getBoundingClientRect().top;
-    const endY = Math.max(startY + 1, endYRaw - PROGRESS_END_EARLY_PX);
+    const first = pages[0];
+    const last = pages[pages.length - 1];
+
+    const firstTop = window.scrollY + first.getBoundingClientRect().top;
+    const lastBottom = window.scrollY + last.getBoundingClientRect().bottom;
     const viewportBottom = window.scrollY + window.innerHeight;
 
-    if (viewportBottom <= startY) return 0;
-    if (viewportBottom >= endY) return 1;
+    if (viewportBottom <= firstTop) return 0;
+    if (viewportBottom >= lastBottom) return 1;
 
-    return (viewportBottom - startY) / Math.max(1, endY - startY);
+    return (viewportBottom - firstTop) / Math.max(1, lastBottom - firstTop);
   }
 
   function updateChapterProgress(progress = 0) {
@@ -1421,6 +1475,7 @@
     if (pageBar) pageBar.style.width = `${percent}%`;
     if (fill) fill.style.width = `${percent}%`;
     if (text) text.textContent = `${percent}%`;
+
     if (label) {
       const chapterNo = getCurrentChapterPosition();
       const baseLabel = CURRENT_ENTRY?.subtitle || CURRENT_ITEM?.subtitle || "Chapter Progress";
@@ -1445,6 +1500,10 @@
 
     updateStickyBottomAction(0);
   }
+
+  // ============================================================
+  // Refresh timers
+  // ============================================================
 
   function clearRefreshTimers() {
     if (railRefreshTimer) clearInterval(railRefreshTimer);
@@ -1541,6 +1600,10 @@
     }, MOBILE_STICKY_REFRESH_MS);
   }
 
+  // ============================================================
+  // Prefetch / reader ads
+  // ============================================================
+
   function maybePreloadNextChapter() {
     if (nextPrefetch || !CURRENT_WORK || !CURRENT_ENTRY) return;
 
@@ -1590,7 +1653,7 @@
       ticking = true;
 
       window.requestAnimationFrame(() => {
-        const progress = getReadingProgressFromAnchors();
+        const progress = getReadingProgressFromPages();
 
         updateChapterProgress(progress);
 
@@ -1605,6 +1668,54 @@
 
     window.addEventListener("scroll", onScroll, { passive: true });
   }
+
+  // ============================================================
+  // Keyboard navigation
+  // ============================================================
+
+  function wireKeyboardNavigation() {
+    if (keyboardNavWired) return;
+    keyboardNavWired = true;
+
+    document.addEventListener("keydown", async (e) => {
+      if (isTypingTarget(e.target)) return;
+      if (!CURRENT_WORK || !CURRENT_ENTRY) return;
+
+      const { prev, next } = getEntryContext();
+
+      if (e.key === "ArrowRight" && next) {
+        e.preventDefault();
+        burstServeAds();
+        await switchEntry(CURRENT_WORK.slug, next.slug, false, { actionSource: "keyboard-next" });
+        return;
+      }
+
+      if (e.key === "ArrowLeft" && prev) {
+        e.preventDefault();
+        burstServeAds();
+        await switchEntry(CURRENT_WORK.slug, prev.slug, false, { actionSource: "keyboard-prev" });
+        return;
+      }
+
+      if (e.key === "Home") {
+        e.preventDefault();
+        scrollToReaderContentStartInstant();
+        return;
+      }
+
+      if (e.key === "End") {
+        e.preventDefault();
+        const bottom = document.getElementById("bottomTraversal") || document.getElementById("readerBottomAnchor");
+        if (bottom) {
+          bottom.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+    });
+  }
+
+  // ============================================================
+  // Meta / build
+  // ============================================================
 
   function buildChapterMeta(manifest, imageCount) {
     const meta = document.createElement("section");
@@ -1656,6 +1767,7 @@
     const entries = Array.isArray(selection.work?.entries) ? selection.work.entries : [];
     const targetIndex = entries.findIndex(entry => normalizeKey(entry.slug) === normalizeKey(file));
 
+    // Skip first three chapters.
     if (targetIndex < 3) return false;
 
     const isDifferentChapter =
@@ -1776,11 +1888,6 @@
       reader.appendChild(endAds(manifest, finalBlock));
     }
 
-    const contentEndAnchor = document.createElement("span");
-    contentEndAnchor.id = "readerContentEndAnchor";
-    contentEndAnchor.className = "reader-anchor";
-    reader.appendChild(contentEndAnchor);
-
     reader.appendChild(buildTraversal("bottom"));
 
     const recommend = buildRecommendationWidget();
@@ -1829,6 +1936,10 @@
     showRetentionToast(`Now reading: ${CURRENT_ENTRY?.subtitle || titleCaseSlug(file)}`);
   }
 
+  // ============================================================
+  // Visibility / clicks
+  // ============================================================
+
   function wireDocumentVisibility() {
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) return;
@@ -1867,6 +1978,10 @@
     }, { passive: true });
   }
 
+  // ============================================================
+  // Boot
+  // ============================================================
+
   async function boot() {
     injectEnhancementStyles();
 
@@ -1885,6 +2000,7 @@
     wireMobileDial();
     wireDocumentVisibility();
     wireReaderClickMonetization();
+    wireKeyboardNavigation();
 
     await buildReader();
 
