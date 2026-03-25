@@ -7,11 +7,15 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="//a.magsrv.com">
+  <link rel="dns-prefetch" href="//a.pemsrv.com">
+  <link rel="dns-prefetch" href="//s.pemsrv.com">
   <link href="https://fonts.googleapis.com/css2?family=Handjet:wght@100..900&family=Rampart+One&family=Rubik+Iso&family=Rubik+Broken+Fax&display=swap" rel="stylesheet">
 
   <script>
     (function () {
       var path = window.location.pathname.toLowerCase();
+
       if (path.includes("mobile.html")) return;
 
       var isMobile =
@@ -22,6 +26,7 @@
 
       var basePath = window.location.pathname.replace(/\/[^\/]*$/, "/");
       var target = window.location.origin + basePath + "mobile.html" + window.location.search + window.location.hash;
+
       window.location.replace(target);
     })();
   </script>
@@ -47,7 +52,7 @@
       --radius:22px;
       --railW:min(380px, 26vw);
       --readerW:min(760px, 100%);
-      --maxw:1680px;
+      --maxw:1660px;
       --title-font:"Rampart One", system-ui, sans-serif;
       --subtitle-font:"Rubik Iso", system-ui, sans-serif;
       --ui-font:"Handjet", system-ui, sans-serif;
@@ -434,7 +439,7 @@
     }
 
     .layout{
-      max-width:var(--maxw);
+      max-width:1680px;
       margin:0 auto;
       padding:8px;
       display:grid;
@@ -445,19 +450,16 @@
 
     .reader{
       width:var(--readerW);
-      max-width:100%;
       margin:0 auto;
       min-width:0;
       display:grid;
       gap:12px;
-      justify-self:center;
     }
 
     .rail{
       position:sticky;
       top:20px;
       height:max-content;
-      min-width:0;
     }
 
     .rail-stack .slot{
@@ -488,14 +490,11 @@
     .image-wrap{
       background:#000;
       margin-bottom:6px;
-      width:100%;
-      max-width:100%;
     }
 
     .image-wrap img{
       display:block;
       width:100%;
-      max-width:100%;
       height:auto;
       background:#000;
     }
@@ -614,18 +613,43 @@
       grid-template-columns:repeat(3, minmax(0, 1fr));
       gap:12px;
       width:100%;
-      max-width:100%;
     }
 
     .between-grid .slot,
     .end-grid .slot{ min-height:250px; padding:8px; }
+
+    .recommend-shell{
+      border:1px solid var(--stroke);
+      border-radius:var(--radius);
+      overflow:hidden;
+      box-shadow:var(--shadow);
+      background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.032));
+      backdrop-filter:blur(8px);
+      padding:16px;
+      display:grid;
+      gap:12px;
+    }
+
+    .recommend-shell .slot{
+      min-height:170px;
+      padding:10px;
+    }
+
+    .recommend-title{
+      margin:0;
+      color:var(--muted2);
+      text-align:center;
+      font-family:var(--subtitle-font);
+      font-size:11px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
 
     .exo-slot ins,
     .slot ins,
     .top-banner-inner ins{
       display:block !important;
       margin:0 auto !important;
-      max-width:100% !important;
     }
 
     #stickyCluster{
@@ -733,11 +757,24 @@
       box-shadow:0 0 14px rgba(255,255,255,.2);
     }
 
+    .ad-mount{
+      position:fixed;
+      width:1px;
+      height:1px;
+      overflow:hidden;
+      opacity:0;
+      pointer-events:none;
+      z-index:-1;
+    }
+
+    #desktopInterstitialMount{ left:-9999px; top:-9999px; }
+    #desktopVideoSliderMount{ left:-9999px; top:-9999px; }
+
     @media (max-width: 1380px){
       .layout{ grid-template-columns:1fr; }
       .rail{ position:relative; top:auto; }
       .rail-stack{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; }
-      .reader{ width:min(860px, 100%); max-width:100%; }
+      .reader{ width:min(860px, 100%); }
     }
 
     @media (max-width: 980px){
@@ -762,10 +799,26 @@
       .top-banner-bar{ min-height:108px; }
       .top-banner-inner{ min-height:90px; }
     }
+
+    @media (min-width: 861px){
+      #stickyCluster{
+        left:18px !important;
+        right:auto !important;
+        bottom:18px !important;
+      }
+
+      .chapter-progress-chip{
+        left:18px !important;
+        right:auto !important;
+        bottom:130px !important;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="page-progress" aria-hidden="true"><div class="page-progress-bar" id="pageProgressBar"></div></div>
+  <div class="page-progress" aria-hidden="true">
+    <div class="page-progress-bar" id="pageProgressBar"></div>
+  </div>
 
   <header class="hero">
     <div class="hero-inner">
@@ -778,7 +831,13 @@
       <section class="top-search-shell" aria-label="Reader search">
         <div class="search-card" id="searchBarAnchor">
           <div class="search-row">
-            <input id="chapterSearchInput" class="search-input" type="search" placeholder="Search works and chapters…" autocomplete="off" />
+            <input
+              id="chapterSearchInput"
+              class="search-input"
+              type="search"
+              placeholder="Search works and chapters…"
+              autocomplete="off"
+            />
             <div class="search-stat" id="chapterSearchStat">Ready to jump</div>
           </div>
           <div class="search-results" id="chapterSearchResults"></div>
@@ -795,15 +854,15 @@
 
   <div class="top-banner-shell">
     <div class="top-banner-frame">
-      <p class="top-banner-label">Featured Placement</p>
+      <p class="top-banner-label">Featured</p>
       <div class="top-banner-bar">
-        <div class="top-banner-inner exo-slot" id="topBannerSlot"></div>
+        <div class="top-banner-inner" id="topBannerSlot"></div>
       </div>
     </div>
   </div>
 
   <div class="layout">
-    <aside class="rail rail-left left-rail">
+    <aside class="rail rail-left">
       <div class="rail-stack">
         <div class="slot exo-slot" id="leftRailSlot1"></div>
         <div class="slot exo-slot" id="leftRailSlot2"></div>
@@ -822,7 +881,7 @@
 
     <main class="reader" id="reader"></main>
 
-    <aside class="rail rail-right right-rail">
+    <aside class="rail rail-right">
       <div class="rail-stack">
         <div class="slot exo-slot" id="rightRailSlot1"></div>
         <div class="slot exo-slot" id="rightRailSlot2"></div>
@@ -851,11 +910,16 @@
       <span class="chapter-progress-label" id="chapterProgressLabel">Chapter Progress</span>
       <span id="chapterProgressPercent">0%</span>
     </div>
-    <div class="chapter-progress-track"><div class="chapter-progress-fill" id="chapterProgressFill"></div></div>
+    <div class="chapter-progress-track">
+      <div class="chapter-progress-fill" id="chapterProgressFill"></div>
+    </div>
   </aside>
 
+  <div id="desktopInterstitialMount" class="ad-mount" aria-hidden="true"></div>
+  <div id="desktopVideoSliderMount" class="ad-mount" aria-hidden="true"></div>
+
   <script type="application/javascript">
-  (function() {
+  (function () {
     var adConfig = {
       ads_host: "a.pemsrv.com",
       syndication_host: "s.pemsrv.com",
@@ -864,7 +928,7 @@
       popup_force: false,
       chrome_enabled: true,
       new_tab: false,
-      frequency_period: 720,
+      frequency_period: 5,
       frequency_count: 1,
       trigger_method: 3,
       trigger_class: "",
@@ -874,11 +938,13 @@
       only_inline: false
     };
 
+    if (document.getElementById("desktop-popmagicldr")) return;
+
     var s = document.createElement("script");
     s.type = "application/javascript";
     s.async = true;
     s.src = "//" + adConfig.ads_host + "/popunder1000.js";
-    s.id = "popmagicldr";
+    s.id = "desktop-popmagicldr";
 
     for (var k in adConfig) {
       if (!Object.prototype.hasOwnProperty.call(adConfig, k)) continue;
