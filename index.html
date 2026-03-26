@@ -15,7 +15,6 @@
   <script>
     (function () {
       var path = window.location.pathname.toLowerCase();
-
       if (path.includes("mobile.html")) return;
 
       var isMobile =
@@ -26,7 +25,6 @@
 
       var basePath = window.location.pathname.replace(/\/[^\/]*$/, "/");
       var target = window.location.origin + basePath + "mobile.html" + window.location.search + window.location.hash;
-
       window.location.replace(target);
     })();
   </script>
@@ -217,7 +215,9 @@
     .topworks-trigger,
     .topworks-link,
     .traversal-pill,
-    .sticky-btn{
+    .sticky-btn,
+    .mobile-work-trigger,
+    .mobile-chapter-link{
       font-family:var(--pill-font);
       letter-spacing:.02em;
     }
@@ -231,15 +231,50 @@
       border-radius:999px;
       cursor:pointer;
       font-size:13px;
-      line-height:1;
+      line-height:1.15;
       font-weight:600;
       transition:transform .14s ease, box-shadow .14s ease, opacity .14s ease;
       box-shadow:0 8px 24px rgba(255,255,255,.12);
+      display:grid;
+      gap:4px;
+      text-align:left;
     }
 
     .search-result-pill:hover{
       transform:translateY(-1px);
       box-shadow:0 14px 30px rgba(255,255,255,.16);
+    }
+
+    .search-result-main{
+      display:block;
+      font-weight:700;
+    }
+
+    .search-result-sub{
+      display:block;
+      font-size:11px;
+      opacity:.72;
+    }
+
+    .search-result-pill--arc{
+      background:#eef3ff;
+      color:#10131a;
+    }
+
+    .search-result-pill--annotation{
+      background:#f6f6f6;
+      color:#10131a;
+    }
+
+    .search-result-pill--tag,
+    .search-result-pill--tag_cluster{
+      background:#fff8ed;
+      color:#10131a;
+    }
+
+    .search-result-pill--chapter{
+      background:#f0fff2;
+      color:#10131a;
     }
 
     .search-helper{
@@ -326,17 +361,6 @@
       box-shadow:0 16px 36px rgba(255,255,255,.18);
     }
 
-    .topworks-caret{
-      display:inline-block;
-      width:8px;
-      height:8px;
-      border-right:2px solid rgba(16,19,26,.8);
-      border-bottom:2px solid rgba(16,19,26,.8);
-      transform:rotate(45deg);
-      margin-top:-3px;
-      opacity:.9;
-    }
-
     .topworks-flyout{
       position:absolute;
       top:calc(100% + 12px);
@@ -366,14 +390,9 @@
       transition:opacity .18s ease, transform .18s ease, visibility 0s linear 0s;
     }
 
-    .topworks-links{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-
     .topworks-link{
       display:block;
+      width:100%;
       padding:10px 12px;
       border-radius:14px;
       border:1px solid rgba(255,255,255,.08);
@@ -381,10 +400,15 @@
       font-size:13px;
       text-align:left;
       line-height:1.3;
+      color:var(--ink);
+      cursor:pointer;
+      margin-bottom:10px;
     }
 
+    .topworks-link:last-child{ margin-bottom:0; }
+
     .topworks-link:hover,
-    .topworks-link.active{
+    .topworks-link.current{
       background:rgba(255,255,255,.12);
       border-color:rgba(255,255,255,.18);
     }
@@ -470,8 +494,9 @@
     .slot,
     .image-wrap,
     .note,
-    .traversal-shell,
-    .chapter-meta{
+    .chapter-meta,
+    .chapter-traversal,
+    .recommend-widget{
       border:1px solid var(--stroke);
       border-radius:var(--radius);
       overflow:hidden;
@@ -488,6 +513,7 @@
     }
 
     .image-wrap{
+      position:relative;
       background:#000;
       margin-bottom:6px;
     }
@@ -499,9 +525,24 @@
       background:#000;
     }
 
+    .page-annotation-badge{
+      position:absolute;
+      left:12px;
+      top:12px;
+      background:rgba(0,0,0,.72);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:12px;
+      line-height:1;
+      z-index:2;
+    }
+
     .chapter-meta,
     .note,
-    .traversal-shell{
+    .chapter-traversal,
+    .recommend-widget{
       background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.032));
       backdrop-filter:blur(8px);
     }
@@ -548,13 +589,13 @@
       font-size:14px;
     }
 
-    .traversal-shell{
+    .chapter-traversal{
       padding:18px;
       display:grid;
       gap:14px;
     }
 
-    .traversal-kicker{
+    .traversal-heading{
       margin:0;
       color:var(--muted2);
       text-align:center;
@@ -564,14 +605,7 @@
       text-transform:uppercase;
     }
 
-    .continue-prompt{
-      text-align:center;
-      color:var(--muted);
-      font-size:14px;
-      line-height:1.65;
-    }
-
-    .traversal-bar{
+    .traversal-row{
       display:flex;
       flex-wrap:wrap;
       gap:12px;
@@ -618,19 +652,13 @@
     .between-grid .slot,
     .end-grid .slot{ min-height:250px; padding:8px; }
 
-    .recommend-shell{
-      border:1px solid var(--stroke);
-      border-radius:var(--radius);
-      overflow:hidden;
-      box-shadow:var(--shadow);
-      background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.032));
-      backdrop-filter:blur(8px);
+    .recommend-widget{
       padding:16px;
       display:grid;
       gap:12px;
     }
 
-    .recommend-shell .slot{
+    .recommend-widget .slot{
       min-height:170px;
       padding:10px;
     }
@@ -757,6 +785,28 @@
       box-shadow:0 0 14px rgba(255,255,255,.2);
     }
 
+    .retention-toast{
+      position:fixed;
+      left:50%;
+      bottom:20px;
+      transform:translateX(-50%) translateY(10px);
+      background:rgba(10,12,18,.96);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:999px;
+      padding:10px 16px;
+      box-shadow:0 18px 40px rgba(0,0,0,.35);
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .18s ease, transform .18s ease;
+      z-index:999999;
+    }
+
+    .retention-toast.show{
+      opacity:1;
+      transform:translateX(-50%) translateY(0);
+    }
+
     .ad-mount{
       position:fixed;
       width:1px;
@@ -767,8 +817,37 @@
       z-index:-1;
     }
 
-    #desktopInterstitialMount{ left:-9999px; top:-9999px; }
-    #desktopVideoSliderMount{ left:-9999px; top:-9999px; }
+    #runtime-desktop-interstitial,
+    #runtime-mobile-interstitial,
+    #runtime-desktop-video-slider{
+      position:fixed;
+      width:1px;
+      height:1px;
+      overflow:hidden;
+      opacity:0;
+      pointer-events:none;
+      z-index:-1;
+      left:-9999px;
+      top:-9999px;
+    }
+
+    #mobileStickyMount{
+      position:fixed;
+      left:50%;
+      transform:translateX(-50%);
+      bottom:10px;
+      z-index:6500;
+      width:min(320px, calc(100vw - 20px));
+      display:none;
+    }
+
+    body[data-reader-mode="mobile"] #mobileStickyMount{
+      display:block;
+    }
+
+    .mobile-works-shell{
+      display:none;
+    }
 
     @media (max-width: 1380px){
       .layout{ grid-template-columns:1fr; }
@@ -835,13 +914,13 @@
               id="chapterSearchInput"
               class="search-input"
               type="search"
-              placeholder="Search works and chapters…"
+              placeholder="Search works, chapters, arcs, tags, notes…"
               autocomplete="off"
             />
             <div class="search-stat" id="chapterSearchStat">Ready to jump</div>
           </div>
           <div class="search-results" id="chapterSearchResults"></div>
-          <p class="search-helper">Search any work or chapter title, then jump instantly.</p>
+          <p class="search-helper">Search works, chapters, arcs, tags, and mapped notes, then jump instantly.</p>
         </div>
       </section>
 
@@ -914,6 +993,8 @@
       <div class="chapter-progress-fill" id="chapterProgressFill"></div>
     </div>
   </aside>
+
+  <div id="mobileStickyMount" aria-hidden="true"></div>
 
   <div id="desktopInterstitialMount" class="ad-mount" aria-hidden="true"></div>
   <div id="desktopVideoSliderMount" class="ad-mount" aria-hidden="true"></div>
