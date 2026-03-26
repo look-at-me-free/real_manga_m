@@ -1,85 +1,47 @@
 (() => {
   "use strict";
 
-  // ------------------------------------------------------------
-  // Config
-  // ------------------------------------------------------------
+  // /notes
+  // ------------------------------------------------------------------
+  // PHILOSOPHY
+  // library.json remains the upload-friendly physical truth.
+  // search_maps/*.json are semantic overlays.
+  //
+  // This file is built to grow toward an endless branching system:
+  // - stable archive layer
+  // - map layer
+  // - future semantic layers
+  // - future page/region/annotation/relationship layers
+  //
+  // IMPORTANT:
+  // No use_map field => false
+  // Only explicit use_map: true activates a map.
+  // ------------------------------------------------------------------
 
   const CONFIG = {
     libraryFile: "library.json",
+    mapsBasePath: "search_maps",
     defaultWorksBase: "https://pub-cd01009a7c6c464aa0b093e33aa5ae51.r2.dev/works",
     itemJsonName: "item.json",
-
-    bottomAdCount: 6,
-
-    railRefreshMs: 45000,
-    bannerRefreshMs: 60000,
-    betweenRefreshMs: 50000,
-    mobileStickyRefreshMs: 60000,
-
-    readProgressPrefetch: 0.7,
-    bottomGlowProgress: 0.95,
-    searchResultsLimit: 12,
-
-    minGlobalServeGapMs: 1200,
-    minSlotRefreshGapMs: 30000,
-    viewportThreshold: 0.2,
-
-    interstitialDelayMs: 1200,
-    videoSliderDelayMs: 5000,
-
-    topTraversalWindow: 9,
-    topTraversalEdgeCount: 2
+    searchResultsLimit: 12
   };
 
-  const ZONES = {
-    topBanner: 5865232,
-    leftRail: 5865238,
-    rightRail: 5865240,
-    betweenMulti: 5867482
+  const ERROR_CODES = {
+    LIBRARY_FETCH_FAILED: "LIBRARY_FETCH_FAILED",
+    LIBRARY_INVALID: "LIBRARY_INVALID",
+    NO_WORKS_FOUND: "NO_WORKS_FOUND",
+    MAP_FETCH_FAILED: "MAP_FETCH_FAILED",
+    MAP_INVALID: "MAP_INVALID",
+    SEARCH_INDEX_BUILD_FAILED: "SEARCH_INDEX_BUILD_FAILED",
+    SELECTION_NOT_FOUND: "SELECTION_NOT_FOUND",
+    MANIFEST_FETCH_FAILED: "MANIFEST_FETCH_FAILED",
+    MANIFEST_INVALID: "MANIFEST_INVALID",
+    MANIFEST_NO_BASE_URL: "MANIFEST_NO_BASE_URL",
+    MANIFEST_NO_IMAGES: "MANIFEST_NO_IMAGES",
+    SWITCH_ENTRY_FAILED: "SWITCH_ENTRY_FAILED",
+    BUILD_READER_FAILED: "BUILD_READER_FAILED",
+    BOOT_FAILED: "BOOT_FAILED"
   };
-
-  const SPECIAL_ZONES = {
-    desktopInterstitial: {
-      zoneId: 5880058,
-      className: "eas6a97888e35",
-      host: "https://a.pemsrv.com/ad-provider.js"
-    },
-    mobileInterstitial: {
-      zoneId: 5880060,
-      className: "eas6a97888e33",
-      host: "https://a.pemsrv.com/ad-provider.js"
-    },
-    desktopVideoSlider: {
-      zoneId: 5880066,
-      className: "eas6a97888e31",
-      host: "https://a.magsrv.com/ad-provider.js"
-    },
-    desktopRecommend: {
-      zoneId: 5880068,
-      className: "eas6a97888e20",
-      host: "https://a.magsrv.com/ad-provider.js"
-    },
-    mobileSticky: {
-      zoneId: 5880082,
-      className: "eas6a97888e10",
-      host: "https://a.magsrv.com/ad-provider.js"
-    }
-  };
-
-  const LEFT_RAIL_IDS = [
-    "leftRailSlot1","leftRailSlot2","leftRailSlot3","leftRailSlot4","leftRailSlot5","leftRailSlot6",
-    "leftRailSlot7","leftRailSlot8","leftRailSlot9","leftRailSlot10","leftRailSlot11","leftRailSlot12"
-  ];
-
-  const RIGHT_RAIL_IDS = [
-    "rightRailSlot1","rightRailSlot2","rightRailSlot3","rightRailSlot4","rightRailSlot5","rightRailSlot6",
-    "rightRailSlot7","rightRailSlot8","rightRailSlot9","rightRailSlot10","rightRailSlot11","rightRailSlot12"
-  ];
-
-  // ------------------------------------------------------------
-  // State
-  // ------------------------------------------------------------
 
   const STATE = {
     works: [],
@@ -91,39 +53,19 @@
 
     isMobileReader: document.body?.dataset?.readerMode === "mobile",
 
+    searchWired: false,
     topFlyoutsWired: false,
     stickyControlsWired: false,
-    searchWired: false,
     mobileWorksWired: false,
     progressWatchWired: false,
     dialWired: false,
 
-    railRefreshTimer: null,
-    bannerRefreshTimer: null,
-    betweenRefreshTimer: null,
-    mobileStickyRefreshTimer: null,
-
-    nextPrefetch: null,
-    bottomGlowTriggered: false,
     mobileOpenWorkSlug: "",
 
-    adServeScheduled: false,
-    lastServeAt: 0,
-    adVisibilityObserver: null,
-    adActionBurstCooldownUntil: 0,
-
-    providerLoadPromises: new Map(),
-
-    videoSliderLoaded: false,
-    videoSliderScheduled: false,
-    mobileStickyLoaded: false,
-
-    retentionToastTimer: null
+    workMaps: new Map(),     // work slug -> map object or null
+    searchRows: [],          // merged search index
+    futureLayers: new Map()  // reserved for future branch layers
   };
-
-  // ------------------------------------------------------------
-  // DOM helpers
-  // ------------------------------------------------------------
 
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -135,24 +77,20 @@
     return el;
   }
 
-  // ------------------------------------------------------------
-  // Utilities
-  // ------------------------------------------------------------
-
-  function now() {
-    return Date.now();
-  }
-
-  function delay(ms) {
-    return new Promise(resolve => window.setTimeout(resolve, ms));
-  }
-
   function normalizeKey(value) {
     return String(value ?? "").trim().toLowerCase();
   }
 
   function normalizeBaseUrl(url) {
     return String(url || "").replace(/\/+$/, "");
+  }
+
+  function titleCaseSlug(slug) {
+    return String(slug ?? "")
+      .replace(/[_-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/\b\w/g, ch => ch.toUpperCase());
   }
 
   function escapeHtml(value) {
@@ -164,50 +102,148 @@
       .replaceAll("'", "&#39;");
   }
 
-  function titleCaseSlug(slug) {
-    return String(slug ?? "")
-      .replace(/[_-]+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .replace(/\b\w/g, ch => ch.toUpperCase());
+  async function fetchJson(url) {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+    return res.json();
   }
 
-  function isElementInViewport(el, threshold = CONFIG.viewportThreshold) {
-    if (!el || !el.isConnected) return false;
-
-    const rect = el.getBoundingClientRect();
-    const vw = window.innerWidth || document.documentElement.clientWidth;
-    const vh = window.innerHeight || document.documentElement.clientHeight;
-
-    if (rect.width <= 0 || rect.height <= 0) return false;
-    if (rect.bottom <= 0 || rect.right <= 0 || rect.top >= vh || rect.left >= vw) return false;
-
-    const visibleX = Math.max(0, Math.min(rect.right, vw) - Math.max(rect.left, 0));
-    const visibleY = Math.max(0, Math.min(rect.bottom, vh) - Math.max(rect.top, 0));
-    const visibleArea = visibleX * visibleY;
-    const totalArea = rect.width * rect.height;
-
-    if (totalArea <= 0) return false;
-    return (visibleArea / totalArea) >= threshold;
+  function createAppError(code, message, details = {}) {
+    const err = new Error(message);
+    err.name = "AppError";
+    err.code = code;
+    err.details = details;
+    return err;
   }
 
-  function canRefreshSlot(el) {
-    if (!el) return false;
-    const last = Number(el.dataset.lastRefreshAt || 0);
-    return (now() - last) >= CONFIG.minSlotRefreshGapMs;
+  function logAppError(err, context = "") {
+    const code = err?.code || "UNEXPECTED_ERROR";
+    const message = err?.message || "Unexpected failure";
+    console.error(`[${code}]${context ? ` ${context}` : ""}: ${message}`, err?.details || {}, err);
+    return { code, message, details: err?.details || null };
   }
 
-  function stampSlotRefresh(el) {
-    if (el) el.dataset.lastRefreshAt = String(now());
+  function showFatalError(err) {
+    const payload = logAppError(err, "Fatal");
+
+    const workTitleEl = document.getElementById("workTitle");
+    if (workTitleEl) workTitleEl.textContent = `Failed to load (${payload.code})`;
+
+    const reader = document.getElementById("reader");
+    if (reader) {
+      reader.innerHTML = `
+        <div class="note">
+          <strong>Error code:</strong> ${escapeHtml(payload.code)}<br>
+          <strong>Message:</strong> ${escapeHtml(payload.message)}<br>
+          Check library.json, search_maps, sources, item.json, base_url, and image filenames.
+        </div>
+      `;
+    }
+
+    const stat = document.getElementById("chapterSearchStat");
+    if (stat) stat.textContent = `Error: ${payload.code}`;
   }
 
-  function markSlotSeen(el) {
-    if (el) el.dataset.seen = "1";
+  function validateLibrary(data) {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      throw createAppError(ERROR_CODES.LIBRARY_INVALID, "library.json is not a valid object");
+    }
+
+    if (!Array.isArray(data.works)) {
+      throw createAppError(ERROR_CODES.LIBRARY_INVALID, "library.json missing works array");
+    }
+
+    if (!data.works.length) {
+      throw createAppError(ERROR_CODES.NO_WORKS_FOUND, "library.json has no works");
+    }
+
+    return data;
   }
 
-  // ------------------------------------------------------------
-  // Source / item resolution
-  // ------------------------------------------------------------
+  async function loadLibrary() {
+    let data;
+    try {
+      data = await fetchJson(CONFIG.libraryFile);
+    } catch (err) {
+      throw createAppError(
+        ERROR_CODES.LIBRARY_FETCH_FAILED,
+        "Failed to fetch library.json",
+        { cause: err.message }
+      );
+    }
+
+    const validated = validateLibrary(data);
+
+    STATE.works = validated.works.filter(work => work && typeof work === "object");
+    STATE.sourceMap = validated.sources && typeof validated.sources === "object"
+      ? validated.sources
+      : {};
+
+    if (!STATE.works.length) {
+      throw createAppError(ERROR_CODES.NO_WORKS_FOUND, "No valid works found in library.json");
+    }
+  }
+
+  function shouldUseMap(work) {
+    return work?.use_map === true;
+  }
+
+  function getMapFile(work) {
+    if (!shouldUseMap(work)) return null;
+    const fileName = work.map_file || `${work.slug}.json`;
+    return `${CONFIG.mapsBasePath}/${fileName}`;
+  }
+
+  function getWorkMap(workOrSlug) {
+    const slug = typeof workOrSlug === "string" ? workOrSlug : workOrSlug?.slug;
+    return slug ? (STATE.workMaps.get(slug) || null) : null;
+  }
+
+  function validateMapData(work, data) {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      throw createAppError(
+        ERROR_CODES.MAP_INVALID,
+        `Map for ${work.slug} is not a valid object`,
+        { work: work.slug }
+      );
+    }
+    return data;
+  }
+
+  async function loadWorkMap(work) {
+    if (!shouldUseMap(work)) return null;
+
+    if (STATE.workMaps.has(work.slug)) {
+      return STATE.workMaps.get(work.slug);
+    }
+
+    const url = getMapFile(work);
+
+    try {
+      const data = await fetchJson(url);
+      const validated = validateMapData(work, data);
+      STATE.workMaps.set(work.slug, validated);
+      return validated;
+    } catch (err) {
+      logAppError(
+        createAppError(
+          err.code === ERROR_CODES.MAP_INVALID ? ERROR_CODES.MAP_INVALID : ERROR_CODES.MAP_FETCH_FAILED,
+          `Failed to load map for ${work.slug}`,
+          { work: work.slug, url, cause: err.message }
+        ),
+        "Map load"
+      );
+
+      // non-fatal fallback
+      STATE.workMaps.set(work.slug, null);
+      return null;
+    }
+  }
+
+  async function loadAllWorkMaps() {
+    const mappedWorks = STATE.works.filter(shouldUseMap);
+    await Promise.all(mappedWorks.map(loadWorkMap));
+  }
 
   function resolveSourceKey(work, entry) {
     return entry?.source || work?.source || "";
@@ -230,580 +266,160 @@
     if (entry?.item_url) return entry.item_url;
 
     const path = String(entry?.path || entry?.slug || "");
-    const safeParts = path.split("/").filter(Boolean).map(part => encodeURIComponent(part));
+    const parts = path.split("/").filter(Boolean).map(part => encodeURIComponent(part));
 
-    return `${getWorkBase(work, entry)}/${encodeURIComponent(work.slug)}/${safeParts.join("/")}/${CONFIG.itemJsonName}`;
-  }
-
-  function buildImageList(manifest) {
-    if (Array.isArray(manifest.images) && manifest.images.length) return manifest.images;
-
-    if (Number.isFinite(manifest.pages) && manifest.pages > 0) {
-      const ext = manifest.extension || "jpg";
-      const padding = Number.isFinite(manifest.padding) ? manifest.padding : 2;
-
-      return Array.from({ length: manifest.pages }, (_, i) => {
-        return `${String(i + 1).padStart(padding, "0")}.${ext}`;
-      });
-    }
-
-    return [];
-  }
-
-  function getSubids(manifest) {
-    const fallbackWork = Number(manifest.parent_work_id) || 1;
-    return {
-      work: manifest.subids?.work ?? fallbackWork,
-      top: manifest.subids?.top ?? fallbackWork + 10,
-      left: manifest.subids?.left ?? fallbackWork + 20,
-      right: manifest.subids?.right ?? fallbackWork + 30,
-      between: manifest.subids?.between ?? fallbackWork + 40
-    };
-  }
-
-  // ------------------------------------------------------------
-  // Query state
-  // ------------------------------------------------------------
-
-  function getQueryState() {
-    const url = new URL(window.location.href);
-    return {
-      dir: url.searchParams.get("dir") || "",
-      file: url.searchParams.get("file") || ""
-    };
-  }
-
-  function setQueryState(dir, file, replace = false) {
-    const url = new URL(window.location.href);
-    url.searchParams.set("dir", dir);
-    url.searchParams.set("file", file);
-
-    if (replace) {
-      history.replaceState({ dir, file }, "", url);
-    } else {
-      history.pushState({ dir, file }, "", url);
-    }
-  }
-
-  function getFirstEntry() {
-    for (const work of STATE.works) {
-      const first = Array.isArray(work.entries) ? work.entries[0] : null;
-      if (work?.slug && first?.slug) return { work, entry: first };
-    }
-    return { work: null, entry: null };
+    return `${getWorkBase(work, entry)}/${encodeURIComponent(work.slug)}/${parts.join("/")}/${CONFIG.itemJsonName}`;
   }
 
   function resolveSelection(dir, file) {
-    const d = normalizeKey(dir);
-    const f = normalizeKey(file);
+    const work = STATE.works.find(w => normalizeKey(w.slug) === normalizeKey(dir));
+    if (!work) return null;
 
-    for (const work of STATE.works) {
-      if (normalizeKey(work.slug) !== d) continue;
-      for (const entry of work.entries || []) {
-        if (normalizeKey(entry.slug) === f) {
-          return { work, entry };
-        }
-      }
-    }
+    const entry = (work.entries || []).find(e => normalizeKey(e.slug) === normalizeKey(file));
+    if (!entry) return null;
 
-    return null;
+    return { work, entry };
   }
 
-  function getEntryContext() {
-    const entries = Array.isArray(STATE.currentWork?.entries) ? STATE.currentWork.entries : [];
-    const currentIndex = entries.findIndex(entry => normalizeKey(entry.slug) === normalizeKey(STATE.currentEntry?.slug));
+  function getChapterLocationForEntry(work, entry) {
+    const map = getWorkMap(work);
+    return map?.chapter_locations?.[entry.slug] || null;
+  }
 
+  function getEntryDisplayLabel(work, entry) {
+    const mapped = getChapterLocationForEntry(work, entry);
+    return mapped?.display_label || entry.subtitle || titleCaseSlug(entry.slug);
+  }
+
+  function makeSearchRow(row) {
     return {
-      entries,
-      currentIndex,
-      prev: currentIndex > 0 ? entries[currentIndex - 1] : null,
-      next: currentIndex >= 0 && currentIndex < entries.length - 1 ? entries[currentIndex + 1] : null
+      type: row.type || "entry",
+      workSlug: row.workSlug,
+      workLabel: row.workLabel,
+      entrySlug: row.entrySlug || "",
+      entryLabel: row.entryLabel || "",
+      subLabel: row.subLabel || "",
+      page: row.page ?? null,
+      zoneId: row.zoneId ?? null,
+      searchKey: normalizeKey(row.searchKey || "")
     };
   }
-
-  function getCurrentChapterPosition() {
-    const { currentIndex } = getEntryContext();
-    return currentIndex >= 0 ? currentIndex + 1 : 0;
-  }
-
-  // ------------------------------------------------------------
-  // Scroll targets
-  // ------------------------------------------------------------
-
-  function scrollToReaderTopInstant() {
-    const target =
-      document.getElementById("readerTopAnchor") ||
-      document.getElementById("reader") ||
-      document.getElementById("searchBarAnchor");
-
-    if (target) {
-      target.scrollIntoView({ behavior: "auto", block: "start" });
-    } else {
-      window.scrollTo(0, 0);
-    }
-  }
-
-  function scrollToReaderContentStartInstant() {
-    const target =
-      document.getElementById("readerContentStartAnchor") ||
-      document.getElementById("readerTopAnchor") ||
-      document.getElementById("reader");
-
-    if (target) {
-      target.scrollIntoView({ behavior: "auto", block: "start" });
-    } else {
-      window.scrollTo(0, 0);
-    }
-  }
-
-  function scrollToSearchBar() {
-    const target = document.getElementById("searchBarAnchor") || document.querySelector(".hero");
-    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  // ------------------------------------------------------------
-  // Fetch
-  // ------------------------------------------------------------
-
-  async function fetchJson(url) {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) {
-      throw new Error(`Failed to fetch ${url} (${res.status})`);
-    }
-    return res.json();
-  }
-
-  async function loadLibrary() {
-    const data = await fetchJson(CONFIG.libraryFile);
-    STATE.works = Array.isArray(data.works) ? data.works : [];
-    STATE.sourceMap = data && typeof data.sources === "object" && data.sources ? data.sources : {};
-  }
-
-  // ------------------------------------------------------------
-  // Ads
-  // ------------------------------------------------------------
-
-  function rawServeAds() {
-    (window.AdProvider = window.AdProvider || []).push({ serve: {} });
-    STATE.lastServeAt = now();
-    STATE.adServeScheduled = false;
-  }
-
-  function serveAds(force = false) {
-    const elapsed = now() - STATE.lastServeAt;
-
-    if (force || elapsed >= CONFIG.minGlobalServeGapMs) {
-      rawServeAds();
-      return;
-    }
-
-    if (STATE.adServeScheduled) return;
-    STATE.adServeScheduled = true;
-
-    window.setTimeout(() => rawServeAds(), Math.max(0, CONFIG.minGlobalServeGapMs - elapsed));
-  }
-
-  function burstServeAds() {
-    if (document.hidden) return;
-    if (now() < STATE.adActionBurstCooldownUntil) return;
-
-    STATE.adActionBurstCooldownUntil = now() + 3500;
-    serveAds(true);
-    window.setTimeout(() => serveAds(true), 700);
-  }
-
-  function ensureAdProviderScript(src) {
-    if (!src) return Promise.resolve();
-
-    if (STATE.providerLoadPromises.has(src)) {
-      return STATE.providerLoadPromises.get(src);
-    }
-
-    const existing = document.querySelector(`script[src="${src}"]`);
-    if (existing) {
-      const ready = Promise.resolve();
-      STATE.providerLoadPromises.set(src, ready);
-      return ready;
-    }
-
-    const promise = new Promise((resolve, reject) => {
-      const s = document.createElement("script");
-      s.async = true;
-      s.type = "application/javascript";
-      s.src = src;
-      s.onload = () => resolve();
-      s.onerror = () => reject(new Error(`Failed to load ad provider: ${src}`));
-      document.head.appendChild(s);
-    });
-
-    STATE.providerLoadPromises.set(src, promise);
-    return promise;
-  }
-
-  function makeIns(zoneId, sub = 1, sub2 = 1, sub3 = 1, className = "eas6a97888e38") {
-    const ins = document.createElement("ins");
-    ins.className = className;
-    ins.setAttribute("data-zoneid", String(zoneId));
-    ins.setAttribute("data-sub", String(sub));
-    ins.setAttribute("data-sub2", String(sub2));
-    ins.setAttribute("data-sub3", String(sub3));
-    return ins;
-  }
-
-  function makeSpecialIns(zoneId, className) {
-    const ins = document.createElement("ins");
-    ins.className = className;
-    ins.setAttribute("data-zoneid", String(zoneId));
-    return ins;
-  }
-
-  function refillSlot(el, zoneId, sub = 1, sub2 = 1, sub3 = 1, className = "eas6a97888e38") {
-    if (!el) return;
-    el.innerHTML = "";
-    el.appendChild(makeIns(zoneId, sub, sub2, sub3, className));
-    stampSlotRefresh(el);
-  }
-
-  function fillSlot(el, zoneId, sub = 1, sub2 = 1, sub3 = 1, className = "eas6a97888e38") {
-    if (!el) return;
-    refillSlot(el, zoneId, sub, sub2, sub3, className);
-    serveAds();
-  }
-
-  function refillSlotIfVisible(el, zoneId, sub = 1, sub2 = 1, sub3 = 1, className = "eas6a97888e38") {
-    if (!el || document.hidden) return false;
-    if (!isElementInViewport(el)) return false;
-    if (!canRefreshSlot(el)) return false;
-
-    refillSlot(el, zoneId, sub, sub2, sub3, className);
-    markSlotSeen(el);
-    return true;
-  }
-
-  function createRuntimeMount(id) {
-    const mount = document.createElement("div");
-    mount.id = id;
-    mount.style.position = "relative";
-    mount.style.width = "0";
-    mount.style.height = "0";
-    mount.style.overflow = "visible";
-    mount.style.zIndex = "999999";
-    return mount;
-  }
-
-  async function mountRuntimeSpecial(id, cfg) {
-    if (!cfg) return null;
-    await ensureAdProviderScript(cfg.host);
-
-    const mountAliases = {
-      "runtime-desktop-interstitial": "desktopInterstitialMount",
-      "runtime-desktop-video-slider": "desktopVideoSliderMount"
-    };
-
-    const preferredId = mountAliases[id] || id;
-
-    let mount = document.getElementById(preferredId);
-    if (!mount) {
-      mount = createRuntimeMount(preferredId);
-      document.body.appendChild(mount);
-    }
-
-    mount.innerHTML = "";
-    mount.appendChild(makeSpecialIns(cfg.zoneId, cfg.className));
-    serveAds(true);
-    return mount;
-  }
-
-  async function fireChapterInterstitial() {
-    const cfg = STATE.isMobileReader ? SPECIAL_ZONES.mobileInterstitial : SPECIAL_ZONES.desktopInterstitial;
-    const id = STATE.isMobileReader ? "runtime-mobile-interstitial" : "runtime-desktop-interstitial";
-
-    await mountRuntimeSpecial(id, cfg);
-    await delay(CONFIG.interstitialDelayMs);
-  }
-
-  async function loadMobileStickyBanner(force = false) {
-    if (!STATE.isMobileReader) return;
-
-    const mount = document.getElementById("mobileStickyMount");
-    if (!mount) return;
-    if (STATE.mobileStickyLoaded && !force) return;
-
-    await ensureAdProviderScript(SPECIAL_ZONES.mobileSticky.host);
-    mount.innerHTML = "";
-    mount.appendChild(
-      makeSpecialIns(SPECIAL_ZONES.mobileSticky.zoneId, SPECIAL_ZONES.mobileSticky.className)
-    );
-    stampSlotRefresh(mount);
-    serveAds(true);
-    STATE.mobileStickyLoaded = true;
-  }
-
-  function positionDesktopStickyAwayFromVideo() {
-    if (STATE.isMobileReader) return;
-
-    const stickyCluster = document.getElementById("stickyCluster");
-    const progressChip = document.querySelector(".chapter-progress-chip");
-
-    if (stickyCluster) {
-      stickyCluster.style.right = "auto";
-      stickyCluster.style.left = "18px";
-      stickyCluster.style.bottom = "18px";
-    }
-
-    if (progressChip) {
-      progressChip.style.left = "18px";
-      progressChip.style.right = "auto";
-      progressChip.style.bottom = "140px";
-    }
-  }
-
-  function resetDesktopVideoSlider() {
-    STATE.videoSliderLoaded = false;
-    STATE.videoSliderScheduled = false;
-
-    const mount = document.getElementById("desktopVideoSliderMount") ||
-                  document.getElementById("runtime-desktop-video-slider");
-
-    if (mount) {
-      mount.innerHTML = "";
-    }
-  }
-
-  function scheduleVideoSlider() {
-    if (STATE.isMobileReader || STATE.videoSliderLoaded || STATE.videoSliderScheduled) return;
-
-    STATE.videoSliderScheduled = true;
-
-    window.setTimeout(async () => {
-      if (STATE.videoSliderLoaded) return;
-
-      await mountRuntimeSpecial("runtime-desktop-video-slider", SPECIAL_ZONES.desktopVideoSlider);
-
-      STATE.videoSliderLoaded = true;
-      STATE.videoSliderScheduled = false;
-      positionDesktopStickyAwayFromVideo();
-    }, CONFIG.videoSliderDelayMs);
-  }
-
-  function setupAdVisibilityObserver() {
-    if (STATE.adVisibilityObserver) {
-      STATE.adVisibilityObserver.disconnect();
-      STATE.adVisibilityObserver = null;
-    }
-
-    STATE.adVisibilityObserver = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.isIntersecting && entry.target) markSlotSeen(entry.target);
-      }
-    }, {
-      root: null,
-      threshold: [0.2, 0.5]
-    });
-
-    $$(".slot, .top-banner-inner").forEach(el => STATE.adVisibilityObserver.observe(el));
-  }
-
-  function refreshVisibleRailSlots() {
-    if (document.hidden || !STATE.currentItem || STATE.isMobileReader) return false;
-
-    const subids = getSubids(STATE.currentItem);
-    let refreshed = false;
-
-    LEFT_RAIL_IDS.forEach((id, index) => {
-      const ok = refillSlotIfVisible(document.getElementById(id), ZONES.leftRail, subids.left, subids.work, index + 1);
-      refreshed = refreshed || ok;
-    });
-
-    RIGHT_RAIL_IDS.forEach((id, index) => {
-      const ok = refillSlotIfVisible(document.getElementById(id), ZONES.rightRail, subids.right, subids.work, index + 1);
-      refreshed = refreshed || ok;
-    });
-
-    if (refreshed) serveAds();
-    return refreshed;
-  }
-
-  function refreshVisibleTopBanner() {
-    if (document.hidden || !STATE.currentItem || STATE.isMobileReader) return false;
-
-    const subids = getSubids(STATE.currentItem);
-    const el = document.getElementById("topBannerSlot");
-    const refreshed = refillSlotIfVisible(el, ZONES.topBanner, subids.top, subids.work, 1);
-
-    if (refreshed) serveAds();
-    return refreshed;
-  }
-
-  function refreshVisibleBetweenSlots() {
-    if (document.hidden || !STATE.currentItem) return false;
-
-    let refreshed = false;
-
-    $$(".between-slot").forEach((el) => {
-      const zoneId = Number(el.dataset.zoneId || 0);
-      const sub = Number(el.dataset.sub || 1);
-      const sub2 = Number(el.dataset.sub2 || 1);
-      const sub3 = Number(el.dataset.sub3 || 1);
-      if (!zoneId) return;
-
-      const ok = refillSlotIfVisible(el, zoneId, sub, sub2, sub3);
-      refreshed = refreshed || ok;
-    });
-
-    if (refreshed) serveAds();
-    return refreshed;
-  }
-
-  async function refreshMobileSticky() {
-    if (!STATE.isMobileReader) return false;
-
-    const mount = document.getElementById("mobileStickyMount");
-    if (!mount || document.hidden) return false;
-    if (!canRefreshSlot(mount)) return false;
-
-    await loadMobileStickyBanner(true);
-    return true;
-  }
-
-  function clearRefreshTimers() {
-    if (STATE.railRefreshTimer) clearInterval(STATE.railRefreshTimer);
-    if (STATE.bannerRefreshTimer) clearInterval(STATE.bannerRefreshTimer);
-    if (STATE.betweenRefreshTimer) clearInterval(STATE.betweenRefreshTimer);
-    if (STATE.mobileStickyRefreshTimer) clearInterval(STATE.mobileStickyRefreshTimer);
-
-    STATE.railRefreshTimer = null;
-    STATE.bannerRefreshTimer = null;
-    STATE.betweenRefreshTimer = null;
-    STATE.mobileStickyRefreshTimer = null;
-  }
-
-  function startRefreshTimers() {
-    clearRefreshTimers();
-
-    if (!STATE.isMobileReader) {
-      STATE.railRefreshTimer = window.setInterval(refreshVisibleRailSlots, CONFIG.railRefreshMs);
-      STATE.bannerRefreshTimer = window.setInterval(refreshVisibleTopBanner, CONFIG.bannerRefreshMs);
-      STATE.betweenRefreshTimer = window.setInterval(refreshVisibleBetweenSlots, CONFIG.betweenRefreshMs);
-      return;
-    }
-
-    STATE.mobileStickyRefreshTimer = window.setInterval(refreshMobileSticky, CONFIG.mobileStickyRefreshMs);
-  }
-
-  function clearDesktopAdShells() {
-    const topBanner = document.getElementById("topBannerSlot");
-    if (topBanner) topBanner.innerHTML = "";
-
-    [...LEFT_RAIL_IDS, ...RIGHT_RAIL_IDS].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = "";
-    });
-  }
-
-  function fillRailStacks(subids) {
-    LEFT_RAIL_IDS.forEach((id, index) => {
-      fillSlot(document.getElementById(id), ZONES.leftRail, subids.left, subids.work, index + 1);
-    });
-
-    RIGHT_RAIL_IDS.forEach((id, index) => {
-      fillSlot(document.getElementById(id), ZONES.rightRail, subids.right, subids.work, index + 1);
-    });
-  }
-
-  // ------------------------------------------------------------
-  // Mobile dial
-  // ------------------------------------------------------------
-
-  function syncDialThumb() {
-    if (!STATE.isMobileReader) return;
-
-    const scrollEl = document.getElementById("worksNav");
-    const track = document.getElementById("dialTrack");
-    const thumb = document.getElementById("dialThumb");
-    if (!scrollEl || !track || !thumb) return;
-
-    const maxScroll = Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight);
-    const trackH = track.clientHeight;
-    const thumbH = thumb.offsetHeight;
-    const maxTop = Math.max(0, trackH - thumbH);
-
-    const ratio = maxScroll > 0 ? scrollEl.scrollTop / maxScroll : 0;
-    thumb.style.top = `${maxTop * ratio}px`;
-  }
-
-  function wireMobileDial() {
-    if (!STATE.isMobileReader || STATE.dialWired) return;
-    STATE.dialWired = true;
-
-    const scrollEl = document.getElementById("worksNav");
-    const track = document.getElementById("dialTrack");
-    const thumb = document.getElementById("dialThumb");
-    if (!scrollEl || !track || !thumb) return;
-
-    let dragging = false;
-
-    const moveThumb = (clientY) => {
-      const rect = track.getBoundingClientRect();
-      const thumbH = thumb.offsetHeight;
-      const maxTop = Math.max(0, rect.height - thumbH);
-
-      let top = clientY - rect.top - thumbH / 2;
-      top = Math.max(0, Math.min(maxTop, top));
-
-      const ratio = maxTop > 0 ? top / maxTop : 0;
-      const maxScroll = Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight);
-
-      scrollEl.scrollTop = maxScroll * ratio;
-      thumb.style.top = `${top}px`;
-    };
-
-    track.addEventListener("pointerdown", (e) => {
-      dragging = true;
-      track.setPointerCapture?.(e.pointerId);
-      moveThumb(e.clientY);
-    });
-
-    track.addEventListener("pointermove", (e) => {
-      if (!dragging) return;
-      moveThumb(e.clientY);
-    });
-
-    track.addEventListener("pointerup", (e) => {
-      dragging = false;
-      track.releasePointerCapture?.(e.pointerId);
-    });
-
-    track.addEventListener("pointercancel", () => {
-      dragging = false;
-    });
-
-    scrollEl.addEventListener("scroll", syncDialThumb, { passive: true });
-    window.addEventListener("resize", syncDialThumb);
-
-    syncDialThumb();
-  }
-
-  // ------------------------------------------------------------
-  // Search
-  // ------------------------------------------------------------
 
   function flattenEntries() {
     const rows = [];
-    for (const work of STATE.works) {
-      for (const entry of work.entries || []) {
-        rows.push({
-          workSlug: work.slug,
-          workLabel: work.display || titleCaseSlug(work.slug),
-          entrySlug: entry.slug,
-          entryLabel: entry.subtitle || titleCaseSlug(entry.slug),
-          searchKey: normalizeKey(
-            `${work.display || work.slug} ${entry.subtitle || entry.slug} ${entry.slug}`
-          )
-        });
+
+    try {
+      for (const work of STATE.works) {
+        const workLabel = work.display || titleCaseSlug(work.slug);
+        const workMap = getWorkMap(work);
+
+        for (const entry of work.entries || []) {
+          const chapterMeta = workMap?.chapter_locations?.[entry.slug] || null;
+          const entryLabel = getEntryDisplayLabel(work, entry);
+
+          rows.push(makeSearchRow({
+            type: "entry",
+            workSlug: work.slug,
+            workLabel,
+            entrySlug: entry.slug,
+            entryLabel,
+            subLabel: entry.subtitle || "",
+            searchKey: [
+              workLabel,
+              entry.slug,
+              entry.subtitle || "",
+              chapterMeta?.display_label || "",
+              ...(chapterMeta?.search_terms || [])
+            ].join(" ")
+          }));
+        }
+
+        if (!workMap) continue;
+
+        for (const [entrySlug, meta] of Object.entries(workMap.chapter_locations || {})) {
+          rows.push(makeSearchRow({
+            type: "chapter",
+            workSlug: work.slug,
+            workLabel,
+            entrySlug,
+            entryLabel: meta.display_label || `Chapter ${meta.chapter_start || ""}`.trim(),
+            subLabel: "Mapped chapter location",
+            searchKey: [
+              workLabel,
+              meta.display_label || "",
+              ...(meta.chapter_numbers || []).map(n => `chapter ${n}`),
+              ...(meta.search_terms || [])
+            ].join(" ")
+          }));
+        }
+
+        for (const arc of (workMap.arcs || [])) {
+          rows.push(makeSearchRow({
+            type: "arc",
+            workSlug: work.slug,
+            workLabel,
+            entrySlug: arc.target_entry_slug || arc.entry_slugs?.[0] || "",
+            entryLabel: arc.label || "Arc",
+            subLabel: `Arc · Chapters ${arc.chapter_start ?? "?"}–${arc.chapter_end ?? "?"}`,
+            searchKey: [
+              workLabel,
+              arc.label || "",
+              ...(arc.search_terms || [])
+            ].join(" ")
+          }));
+        }
+
+        for (const semantic of (workMap.semantic_links || [])) {
+          rows.push(makeSearchRow({
+            type: semantic.type || "tag_cluster",
+            workSlug: work.slug,
+            workLabel,
+            entrySlug: semantic.entry_slug || "",
+            entryLabel: semantic.label || "Semantic cluster",
+            subLabel: semantic.summary || "Semantic cluster",
+            searchKey: [
+              workLabel,
+              semantic.label || "",
+              semantic.summary || "",
+              ...(semantic.tags || []),
+              ...(semantic.search_terms || [])
+            ].join(" ")
+          }));
+        }
+
+        for (const anno of (workMap.image_annotations || [])) {
+          rows.push(makeSearchRow({
+            type: "annotation",
+            workSlug: work.slug,
+            workLabel,
+            entrySlug: anno.entry_slug || "",
+            entryLabel: anno.label || "Annotation",
+            subLabel: `Page ${anno.page ?? "?"}${anno.layer ? ` · ${anno.layer}` : ""}`,
+            page: anno.page ?? null,
+            zoneId: anno.id || null,
+            searchKey: [
+              workLabel,
+              anno.label || "",
+              anno.summary || "",
+              ...(anno.tags || []),
+              ...(anno.search_terms || [])
+            ].join(" ")
+          }));
+        }
       }
+
+      return rows;
+    } catch (err) {
+      throw createAppError(
+        ERROR_CODES.SEARCH_INDEX_BUILD_FAILED,
+        "Failed to build search index",
+        { cause: err.message }
+      );
     }
-    return rows;
+  }
+
+  function rebuildSearchIndex() {
+    STATE.searchRows = flattenEntries();
   }
 
   function renderSearchResults(items) {
@@ -813,23 +429,33 @@
 
     if (!items.length) {
       results.innerHTML = "";
-      stat.textContent = STATE.isMobileReader ? "Type to search" : "No matches yet";
+      stat.textContent = STATE.isMobileReader ? "Type to search" : "No matches";
       return;
     }
 
-    stat.textContent = `${items.length} quick jump${items.length === 1 ? "" : "s"}`;
+    stat.textContent = `${items.length} result${items.length === 1 ? "" : "s"}`;
+
     results.innerHTML = items.map(item => `
-      <button class="search-result-pill" type="button" data-dir="${escapeHtml(item.workSlug)}" data-file="${escapeHtml(item.entrySlug)}">
-        ${escapeHtml(item.workLabel)} · ${escapeHtml(item.entryLabel)}
+      <button
+        class="search-result-pill search-result-pill--${escapeHtml(item.type)}"
+        type="button"
+        data-dir="${escapeHtml(item.workSlug)}"
+        data-file="${escapeHtml(item.entrySlug)}"
+        data-page="${item.page ?? ""}"
+        data-zone="${escapeHtml(item.zoneId || "")}"
+      >
+        <span class="search-result-main">${escapeHtml(item.workLabel)} · ${escapeHtml(item.entryLabel)}</span>
+        ${item.subLabel ? `<span class="search-result-sub">${escapeHtml(item.subLabel)}</span>` : ""}
       </button>
     `).join("");
   }
 
   function syncSearchSeed() {
-    const input = document.getElementById("chapterSearchInput");
-    const stat = document.getElementById("chapterSearchStat");
     const results = document.getElementById("chapterSearchResults");
-    if (!input || !stat || !results) return;
+    const stat = document.getElementById("chapterSearchStat");
+    const input = document.getElementById("chapterSearchInput");
+    if (!results || !stat || !input) return;
+
     if (input.value.trim()) return;
 
     if (STATE.isMobileReader) {
@@ -838,7 +464,7 @@
       return;
     }
 
-    const seeded = flattenEntries()
+    const seeded = STATE.searchRows
       .filter(item => item.workSlug === STATE.currentWork?.slug)
       .slice(0, CONFIG.searchResultsLimit);
 
@@ -855,8 +481,6 @@
     const stat = document.getElementById("chapterSearchStat");
     if (!input || !results || !stat) return;
 
-    const all = flattenEntries();
-
     const refresh = () => {
       const query = normalizeKey(input.value);
 
@@ -867,7 +491,7 @@
           return;
         }
 
-        const seeded = all
+        const seeded = STATE.searchRows
           .filter(item => item.workSlug === STATE.currentWork?.slug)
           .slice(0, CONFIG.searchResultsLimit);
 
@@ -876,7 +500,7 @@
         return;
       }
 
-      const matched = all
+      const matched = STATE.searchRows
         .filter(item => item.searchKey.includes(query))
         .slice(0, CONFIG.searchResultsLimit);
 
@@ -885,7 +509,6 @@
     };
 
     input.addEventListener("input", refresh);
-    input.addEventListener("focus", burstServeAds);
 
     results.addEventListener("click", async (e) => {
       const btn = e.target.closest("button[data-dir][data-file]");
@@ -899,18 +522,11 @@
         setMobileOpenWork(btn.dataset.dir);
       }
 
-      burstServeAds();
       await switchEntry(btn.dataset.dir, btn.dataset.file, false, { actionSource: "search" });
-
-      if (STATE.isMobileReader) scrollToReaderContentStartInstant();
     });
 
     refresh();
   }
-
-  // ------------------------------------------------------------
-  // Works nav
-  // ------------------------------------------------------------
 
   function setMobileOpenWork(workSlug) {
     STATE.mobileOpenWorkSlug = normalizeKey(workSlug || "");
@@ -951,7 +567,7 @@
 
           html += `
             <button class="mobile-chapter-link${active}" type="button" data-dir="${escapeHtml(work.slug)}" data-file="${escapeHtml(entry.slug)}">
-              ${escapeHtml(entry.subtitle || titleCaseSlug(entry.slug))}
+              ${escapeHtml(getEntryDisplayLabel(work, entry))}
             </button>
           `;
         }
@@ -960,7 +576,6 @@
       }
 
       nav.innerHTML = html;
-      syncDialThumb();
       return;
     }
 
@@ -972,846 +587,239 @@
 
       html += `
         <div class="topworks-item${isActive ? " active" : ""}">
-          <button class="topworks-trigger" type="button">
-            <span>${escapeHtml(work.display || titleCaseSlug(work.slug))}</span>
-            <span class="topworks-caret"></span>
+          <button class="topworks-trigger" type="button" data-work-toggle="${escapeHtml(work.slug)}">
+            ${escapeHtml(work.display || titleCaseSlug(work.slug))}
           </button>
           <div class="topworks-flyout">
-            <div class="topworks-links">
       `;
 
       for (const entry of entries) {
-        const label = `${work.display || titleCaseSlug(work.slug)} · ${entry.subtitle || titleCaseSlug(entry.slug)}`;
-        const active = isActive && normalizeKey(entry.slug) === normalizeKey(STATE.currentEntry?.slug) ? " active" : "";
+        const current =
+          isActive && normalizeKey(entry.slug) === normalizeKey(STATE.currentEntry?.slug)
+            ? " current"
+            : "";
 
         html += `
-          <a href="?dir=${encodeURIComponent(work.slug)}&file=${encodeURIComponent(entry.slug)}" class="topworks-link${active}" data-dir="${escapeHtml(work.slug)}" data-file="${escapeHtml(entry.slug)}">
-            ${escapeHtml(label)}
-          </a>
+          <button class="topworks-link${current}" type="button" data-dir="${escapeHtml(work.slug)}" data-file="${escapeHtml(entry.slug)}">
+            ${escapeHtml(getEntryDisplayLabel(work, entry))}
+          </button>
         `;
       }
 
-      html += `</div></div></div>`;
+      html += `</div></div>`;
     }
 
     nav.innerHTML = html;
-
-    nav.onclick = async (e) => {
-      const a = e.target.closest("a[data-dir][data-file]");
-      if (!a) return;
-      e.preventDefault();
-      burstServeAds();
-      await switchEntry(a.dataset.dir, a.dataset.file, false, { actionSource: "top-nav" });
-    };
   }
 
-  function wireTopFlyouts() {
-    if (STATE.topFlyoutsWired) return;
-    STATE.topFlyoutsWired = true;
-
-    document.addEventListener("click", (e) => {
-      const trigger = e.target.closest(".topworks-trigger");
-      if (trigger) {
-        const item = trigger.closest(".topworks-item");
-        if (!item) return;
-
-        e.preventDefault();
-        const wasOpen = item.classList.contains("open");
-        $$(".topworks-item.open").forEach(x => x.classList.remove("open"));
-        if (!wasOpen) {
-          item.classList.add("open");
-          burstServeAds();
-        }
-        return;
-      }
-
-      if (!e.target.closest(".topworks-item")) {
-        $$(".topworks-item.open").forEach(x => x.classList.remove("open"));
-      }
-    });
-  }
-
-  function wireMobileWorksNav() {
-    if (!STATE.isMobileReader || STATE.mobileWorksWired) return;
-    STATE.mobileWorksWired = true;
-
-    const nav = document.getElementById("worksNav");
-    if (!nav) return;
-
-    nav.addEventListener("click", async (e) => {
-      const toggle = e.target.closest("[data-work-toggle]");
-      if (toggle) {
-        const slug = toggle.dataset.workToggle;
-        const normalized = normalizeKey(slug);
-        const isAlreadyOpen = normalized === normalizeKey(STATE.mobileOpenWorkSlug);
-
-        setMobileOpenWork(isAlreadyOpen ? "" : slug);
-        syncDialThumb();
-        burstServeAds();
-        return;
-      }
-
-      const chapterBtn = e.target.closest("button[data-dir][data-file]");
-      if (!chapterBtn) return;
-
-      const dir = chapterBtn.dataset.dir;
-      const file = chapterBtn.dataset.file;
-
-      setMobileOpenWork(dir);
-      burstServeAds();
-      await switchEntry(dir, file, false, { actionSource: "mobile-nav" });
-      scrollToReaderContentStartInstant();
-    });
-  }
-
-  // ------------------------------------------------------------
-  // Reader content blocks
-  // ------------------------------------------------------------
-
-  function imageBlock(src, alt) {
-    const wrap = createEl("div", "image-wrap");
-    const img = document.createElement("img");
-    img.src = src;
-    img.alt = alt;
-    img.loading = "lazy";
-    img.decoding = "async";
-    wrap.appendChild(img);
-    return wrap;
-  }
-
-  function betweenAd(manifest, groupNumber, slotCount) {
-    const subids = getSubids(manifest);
-    const wrap = createEl("div", "between-grid");
-
-    for (let i = 1; i <= slotCount; i++) {
-      const slot = createEl("div", "slot between-slot");
-      slot.dataset.zoneType = "between";
-      slot.dataset.zoneId = String(ZONES.betweenMulti);
-      slot.dataset.sub = String(subids.between);
-      slot.dataset.sub2 = String(subids.work);
-      slot.dataset.sub3 = String(Number(`${groupNumber}${i}`));
-
-      slot.appendChild(makeIns(ZONES.betweenMulti, subids.between, subids.work, Number(`${groupNumber}${i}`)));
-      wrap.appendChild(slot);
+  function validateManifest(manifest, itemUrl) {
+    if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) {
+      throw createAppError(ERROR_CODES.MANIFEST_INVALID, "item.json is not a valid object", { itemUrl });
     }
 
-    return wrap;
-  }
-
-  function endAds(manifest, count) {
-    const subids = getSubids(manifest);
-    const wrap = createEl("div", "end-grid");
-
-    for (let i = 1; i <= count; i++) {
-      const slot = createEl("div", "slot between-slot");
-      slot.dataset.zoneType = "between";
-      slot.dataset.zoneId = String(ZONES.betweenMulti);
-      slot.dataset.sub = String(subids.between);
-      slot.dataset.sub2 = String(subids.work);
-      slot.dataset.sub3 = String(9000 + i);
-
-      slot.appendChild(makeIns(ZONES.betweenMulti, subids.between, subids.work, 9000 + i));
-      wrap.appendChild(slot);
+    const baseUrl = normalizeBaseUrl(manifest.base_url);
+    if (!baseUrl) {
+      throw createAppError(ERROR_CODES.MANIFEST_NO_BASE_URL, "item.json missing base_url", { itemUrl });
     }
 
-    return wrap;
+    const images = buildImageList(manifest);
+    if (!images.length) {
+      throw createAppError(ERROR_CODES.MANIFEST_NO_IMAGES, "No images found in item.json", { itemUrl });
+    }
+
+    return { manifest, baseUrl, images };
   }
 
-  function buildRecommendationWidget() {
-    if (STATE.isMobileReader) return null;
+  function buildImageList(manifest) {
+    if (Array.isArray(manifest.images) && manifest.images.length) return manifest.images;
 
-    const shell = createEl("section", "recommend-shell");
-    const title = createEl("p", "recommend-title", "More To Read");
-    const slot = createEl("div", "slot recommend-slot");
+    if (Number.isFinite(manifest.pages) && manifest.pages > 0) {
+      const ext = manifest.extension || "jpg";
+      const padding = Number.isFinite(manifest.padding) ? manifest.padding : 2;
 
-    slot.appendChild(
-      makeSpecialIns(SPECIAL_ZONES.desktopRecommend.zoneId, SPECIAL_ZONES.desktopRecommend.className)
-    );
+      return Array.from({ length: manifest.pages }, (_, i) => {
+        return `${String(i + 1).padStart(padding, "0")}.${ext}`;
+      });
+    }
 
-    shell.appendChild(title);
-    shell.appendChild(slot);
-    return shell;
+    return [];
   }
 
   function buildChapterMeta(manifest, imageCount) {
     const meta = createEl("section", "chapter-meta");
     const row = createEl("div", "meta-row");
 
-    const chapterNo = getCurrentChapterPosition();
+    const mapped = getChapterLocationForEntry(STATE.currentWork, STATE.currentEntry);
+    const mappedLabel =
+      mapped?.display_label ||
+      manifest.subtitle ||
+      STATE.currentEntry?.subtitle ||
+      titleCaseSlug(STATE.currentEntry?.slug || "");
 
     const leftTag = createEl(
       "div",
       "chapter-tag",
-      `${manifest.title || STATE.currentWork.display || titleCaseSlug(STATE.currentWork.slug)} · ${manifest.subtitle || STATE.currentEntry.subtitle || titleCaseSlug(STATE.currentEntry.slug)}${chapterNo ? ` · #${chapterNo}` : ""}`
+      `${manifest.title || STATE.currentWork.display || titleCaseSlug(STATE.currentWork.slug)} · ${mappedLabel}`
     );
 
     const rightTag = createEl("div", "chapter-tag", `${imageCount} page${imageCount === 1 ? "" : "s"}`);
 
-    const note = createEl(
-      "div",
-      "chapter-note",
-      STATE.isMobileReader
-        ? "Use the chapter controls above or below the pages whenever you want to jump fast."
-        : "Keep reading. Use the bottom controls to roll straight into the next chapter without losing momentum."
-    );
-
     row.appendChild(leftTag);
     row.appendChild(rightTag);
     meta.appendChild(row);
-    meta.appendChild(note);
 
     return meta;
-  }
-
-  // ------------------------------------------------------------
-  // Traversal
-  // ------------------------------------------------------------
-
-  function makeTraversalPill(label, onClick, extraClass = "", disabled = false) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = `traversal-pill${extraClass ? ` ${extraClass}` : ""}`;
-    btn.textContent = label;
-    btn.disabled = !!disabled;
-
-    if (!disabled && typeof onClick === "function") {
-      btn.addEventListener("click", onClick);
-    }
-
-    return btn;
-  }
-
-  function createCompactEntryWindow(entries, currentIndex) {
-    const result = [];
-    const total = entries.length;
-
-    if (total <= CONFIG.topTraversalWindow + (CONFIG.topTraversalEdgeCount * 2)) {
-      return entries.map((entry, index) => ({ type: "entry", entry, index }));
-    }
-
-    const half = Math.floor(CONFIG.topTraversalWindow / 2);
-    const start = Math.max(CONFIG.topTraversalEdgeCount, currentIndex - half);
-    const end = Math.min(total - CONFIG.topTraversalEdgeCount - 1, currentIndex + half);
-
-    const pushEntry = (entry, index) => result.push({ type: "entry", entry, index });
-    const pushGap = (key) => result.push({ type: "gap", key });
-
-    for (let i = 0; i < CONFIG.topTraversalEdgeCount; i++) {
-      pushEntry(entries[i], i);
-    }
-
-    if (start > CONFIG.topTraversalEdgeCount) pushGap("left-gap");
-
-    for (let i = start; i <= end; i++) {
-      pushEntry(entries[i], i);
-    }
-
-    if (end < total - CONFIG.topTraversalEdgeCount - 1) pushGap("right-gap");
-
-    for (let i = total - CONFIG.topTraversalEdgeCount; i < total; i++) {
-      pushEntry(entries[i], i);
-    }
-
-    const deduped = [];
-    const seen = new Set();
-
-    for (const item of result) {
-      if (item.type === "gap") {
-        if (deduped.length && deduped[deduped.length - 1].type !== "gap") {
-          deduped.push(item);
-        }
-        continue;
-      }
-
-      const key = `${item.index}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        deduped.push(item);
-      }
-    }
-
-    if (deduped[deduped.length - 1]?.type === "gap") {
-      deduped.pop();
-    }
-
-    return deduped;
-  }
-
-  function buildDesktopTopTraversal(entries, currentIndex, prev, next) {
-    const shell = createEl("section", "traversal-shell top");
-    const kicker = createEl("p", "traversal-kicker", "Chapter Navigation");
-    const bar = createEl("div", "traversal-bar compact");
-
-    shell.appendChild(kicker);
-
-    bar.appendChild(
-      makeTraversalPill(
-        "← Previous",
-        prev ? () => switchEntry(STATE.currentWork.slug, prev.slug, false, { actionSource: "prev" }) : null,
-        "",
-        !prev
-      )
-    );
-
-    const currentLabel = STATE.currentEntry?.subtitle || titleCaseSlug(STATE.currentEntry?.slug);
-    const currentBtn = makeTraversalPill(currentLabel, () => {
-      const bottom = document.getElementById("bottomTraversal");
-      if (bottom) bottom.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, "current jump-full");
-    bar.appendChild(currentBtn);
-
-    const windowed = createCompactEntryWindow(entries, currentIndex);
-    for (const item of windowed) {
-      if (item.type === "gap") {
-        const gap = createEl("span", "traversal-gap", "…");
-        bar.appendChild(gap);
-        continue;
-      }
-
-      const isCurrent = item.index === currentIndex;
-      const label = item.entry.subtitle || titleCaseSlug(item.entry.slug);
-      bar.appendChild(
-        makeTraversalPill(
-          label,
-          () => switchEntry(STATE.currentWork.slug, item.entry.slug, false, { actionSource: "chapter-pill-top" }),
-          isCurrent ? "current" : ""
-        )
-      );
-    }
-
-    bar.appendChild(
-      makeTraversalPill(
-        next ? `Next: ${next.subtitle || titleCaseSlug(next.slug)}` : "Next →",
-        next ? () => switchEntry(STATE.currentWork.slug, next.slug, false, { actionSource: "next" }) : null,
-        "",
-        !next
-      )
-    );
-
-    shell.appendChild(bar);
-    return shell;
-  }
-
-  function buildBottomTraversal(entries, currentIndex, prev, next) {
-    const shell = createEl("section", "traversal-shell bottom");
-    shell.id = "bottomTraversal";
-
-    const kicker = createEl(
-      "p",
-      "traversal-kicker",
-      STATE.isMobileReader ? "Quick Chapter Jump" : "Keep The Scroll Alive"
-    );
-    shell.appendChild(kicker);
-
-    if (!STATE.isMobileReader) {
-      const prompt = createEl(
-        "div",
-        "continue-prompt",
-        next
-          ? `Finished this chapter? Continue straight into ${next.subtitle || titleCaseSlug(next.slug)}.`
-          : "Finished this chapter? Pick your next move right here."
-      );
-      shell.appendChild(prompt);
-    }
-
-    const bar = createEl("div", "traversal-bar");
-
-    if (STATE.isMobileReader) {
-      bar.appendChild(
-        makeTraversalPill(
-          "← Previous",
-          prev ? () => switchEntry(STATE.currentWork.slug, prev.slug, false, { actionSource: "mobile-prev" }) : null,
-          "",
-          !prev
-        )
-      );
-
-      bar.appendChild(
-        makeTraversalPill("Search", () => {
-          burstServeAds();
-          scrollToSearchBar();
-        })
-      );
-
-      bar.appendChild(
-        makeTraversalPill(
-          next ? `Next: ${next.subtitle || titleCaseSlug(next.slug)}` : "Next →",
-          next ? () => switchEntry(STATE.currentWork.slug, next.slug, false, { actionSource: "mobile-next" }) : null,
-          "",
-          !next
-        )
-      );
-
-      shell.appendChild(bar);
-      return shell;
-    }
-
-    if (prev) {
-      bar.appendChild(
-        makeTraversalPill("← Previous", () => switchEntry(STATE.currentWork.slug, prev.slug, false, { actionSource: "prev-bottom" }))
-      );
-    }
-
-    for (const entry of entries) {
-      const isCurrent = normalizeKey(entry.slug) === normalizeKey(STATE.currentEntry?.slug);
-      const label = entry.subtitle || titleCaseSlug(entry.slug);
-
-      bar.appendChild(
-        makeTraversalPill(
-          label,
-          () => switchEntry(STATE.currentWork.slug, entry.slug, false, { actionSource: "chapter-pill-bottom" }),
-          isCurrent ? "current" : ""
-        )
-      );
-    }
-
-    if (next) {
-      bar.appendChild(
-        makeTraversalPill(
-          `Next: ${next.subtitle || titleCaseSlug(next.slug)}`,
-          () => switchEntry(STATE.currentWork.slug, next.slug, false, { actionSource: "next-bottom" })
-        )
-      );
-    }
-
-    shell.appendChild(bar);
-    return shell;
-  }
-
-  function buildTraversal(position = "top") {
-    const { entries, currentIndex, prev, next } = getEntryContext();
-
-    if (position === "top" && !STATE.isMobileReader) {
-      return buildDesktopTopTraversal(entries, currentIndex, prev, next);
-    }
-
-    return buildBottomTraversal(entries, currentIndex, prev, next);
-  }
-
-  // ------------------------------------------------------------
-  // Progress / toast / sticky controls
-  // ------------------------------------------------------------
-
-  function updatePageProgressBar(percent) {
-    const bar = document.getElementById("pageProgressBar");
-    if (!bar) return;
-    bar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
-  }
-
-  function updateChapterProgress(percent) {
-    const normalized = Math.max(0, Math.min(100, percent));
-    const fill = document.getElementById("chapterProgressFill");
-    const percentEl = document.getElementById("chapterProgressPercent");
-    const label = document.getElementById("chapterProgressLabel");
-
-    if (fill) fill.style.width = `${normalized}%`;
-    if (percentEl) percentEl.textContent = `${Math.round(normalized)}%`;
-    if (label) {
-      const chapterLabel = STATE.currentEntry?.subtitle || titleCaseSlug(STATE.currentEntry?.slug || "chapter");
-      label.textContent = chapterLabel;
-    }
-
-    updatePageProgressBar(normalized);
-  }
-
-  function maybePrefetchNext() {
-    if (STATE.nextPrefetch) return;
-    const { next } = getEntryContext();
-    if (!next || !STATE.currentWork) return;
-
-    const nextUrl = getItemJsonUrl(STATE.currentWork, next);
-    STATE.nextPrefetch = fetch(nextUrl, { cache: "force-cache" }).catch(() => null);
-  }
-
-  function wireProgressWatch() {
-    if (STATE.progressWatchWired) return;
-    STATE.progressWatchWired = true;
-
-    const handle = () => {
-      const reader = document.getElementById("reader");
-      if (!reader) return;
-
-      const rect = reader.getBoundingClientRect();
-      const top = window.scrollY + rect.top;
-      const height = Math.max(reader.scrollHeight, rect.height, 1);
-      const viewportBottom = window.scrollY + window.innerHeight;
-
-      const raw = ((viewportBottom - top) / height) * 100;
-      const percent = Math.max(0, Math.min(100, raw));
-
-      updateChapterProgress(percent);
-
-      if (percent >= CONFIG.readProgressPrefetch * 100) {
-        maybePrefetchNext();
-      }
-
-      if (percent >= CONFIG.bottomGlowProgress * 100 && !STATE.bottomGlowTriggered) {
-        STATE.bottomGlowTriggered = true;
-        const btn = document.getElementById("scrollToBottomTraversalBtn");
-        if (btn) btn.classList.add("pulse");
-      }
-
-      if (percent < CONFIG.bottomGlowProgress * 100 && STATE.bottomGlowTriggered) {
-        STATE.bottomGlowTriggered = false;
-        const btn = document.getElementById("scrollToBottomTraversalBtn");
-        if (btn) btn.classList.remove("pulse");
-      }
-    };
-
-    window.addEventListener("scroll", handle, { passive: true });
-    window.addEventListener("resize", handle);
-    handle();
-  }
-
-  function showRetentionToast(message) {
-    clearTimeout(STATE.retentionToastTimer);
-
-    let toast = document.getElementById("readerToast");
-    if (!toast) {
-      toast = createEl("div");
-      toast.id = "readerToast";
-      toast.style.position = "fixed";
-      toast.style.top = "16px";
-      toast.style.right = "16px";
-      toast.style.zIndex = "8000";
-      toast.style.padding = "12px 16px";
-      toast.style.borderRadius = "16px";
-      toast.style.border = "1px solid rgba(255,255,255,.14)";
-      toast.style.background = "rgba(12,14,20,.9)";
-      toast.style.color = "#f7f8fb";
-      toast.style.backdropFilter = "blur(12px)";
-      toast.style.boxShadow = "0 20px 50px rgba(0,0,0,.35)";
-      toast.style.opacity = "0";
-      toast.style.transform = "translateY(-6px)";
-      toast.style.transition = "opacity .18s ease, transform .18s ease";
-      document.body.appendChild(toast);
-    }
-
-    toast.textContent = message;
-    requestAnimationFrame(() => {
-      toast.style.opacity = "1";
-      toast.style.transform = "translateY(0)";
-    });
-
-    STATE.retentionToastTimer = window.setTimeout(() => {
-      toast.style.opacity = "0";
-      toast.style.transform = "translateY(-6px)";
-    }, 1800);
-  }
-
-  function wireStickyControls() {
-    if (STATE.stickyControlsWired) return;
-    STATE.stickyControlsWired = true;
-
-    const toSearch = document.getElementById("scrollToSearchBtn");
-    const toBottom = document.getElementById("scrollToBottomTraversalBtn");
-
-    if (toSearch) {
-      toSearch.addEventListener("click", () => {
-        burstServeAds();
-        scrollToSearchBar();
-      });
-    }
-
-    if (toBottom) {
-      toBottom.addEventListener("click", () => {
-        burstServeAds();
-        const bottom = document.getElementById("bottomTraversal") || document.getElementById("readerBottomAnchor");
-        if (bottom) bottom.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    }
-  }
-
-  // ------------------------------------------------------------
-  // Reader build
-  // ------------------------------------------------------------
-
-  function shouldShowInterstitial(dir, file, options = {}) {
-    if (STATE.isMobileReader) return false;
-    if (!STATE.currentWork || !STATE.currentEntry) return false;
-
-    const { actionSource = "" } = options;
-    const navigationalSources = new Set([
-      "prev", "next", "prev-bottom", "next-bottom",
-      "chapter-pill-top", "chapter-pill-bottom",
-      "top-nav", "mobile-nav", "mobile-prev", "mobile-next", "search"
-    ]);
-
-    if (!navigationalSources.has(actionSource)) return false;
-
-    return normalizeKey(dir) !== normalizeKey(STATE.currentWork.slug) ||
-           normalizeKey(file) !== normalizeKey(STATE.currentEntry.slug);
   }
 
   async function buildReader() {
     const reader = document.getElementById("reader");
     if (!reader) return;
 
-    STATE.nextPrefetch = null;
-    STATE.bottomGlowTriggered = false;
-
-    const state = getQueryState();
-    let resolved = resolveSelection(state.dir, state.file);
-
-    if (!resolved) {
-      const first = getFirstEntry();
-      resolved = first.work && first.entry ? first : null;
-      if (resolved) setQueryState(resolved.work.slug, resolved.entry.slug, true);
+    let selection = resolveSelectionFromQuery();
+    if (!selection) {
+      selection = resolveDefaultSelection();
     }
 
-    if (!resolved) throw new Error("No works found in library.json");
-
-    STATE.currentWork = resolved.work;
-    STATE.currentEntry = resolved.entry;
-
-    if (STATE.isMobileReader) {
-      STATE.mobileOpenWorkSlug = resolved.work.slug;
+    if (!selection) {
+      throw createAppError(ERROR_CODES.SELECTION_NOT_FOUND, "Could not resolve current work/entry");
     }
 
-    const itemUrl = getItemJsonUrl(resolved.work, resolved.entry);
-    const manifest = await fetchJson(itemUrl);
+    STATE.currentWork = selection.work;
+    STATE.currentEntry = selection.entry;
+
+    const itemUrl = getItemJsonUrl(selection.work, selection.entry);
+
+    let rawManifest;
+    try {
+      rawManifest = await fetchJson(itemUrl);
+    } catch (err) {
+      throw createAppError(
+        ERROR_CODES.MANIFEST_FETCH_FAILED,
+        "Failed to fetch item.json",
+        { itemUrl, cause: err.message, work: selection.work.slug, entry: selection.entry.slug }
+      );
+    }
+
+    const { manifest, baseUrl, images } = validateManifest(rawManifest, itemUrl);
     STATE.currentItem = manifest;
-
-    const images = buildImageList(manifest);
-    const base = normalizeBaseUrl(manifest.base_url);
-    if (!base) throw new Error(`Manifest for ${resolved.entry.slug} is missing base_url`);
-    if (!images.length) throw new Error(`Manifest for ${resolved.entry.slug} has no images`);
 
     const workTitleEl = document.getElementById("workTitle");
     if (workTitleEl) {
-      workTitleEl.textContent = `${resolved.work.display || titleCaseSlug(resolved.work.slug)} · ${manifest.subtitle || resolved.entry.subtitle || titleCaseSlug(resolved.entry.slug)}`;
+      workTitleEl.textContent = `${selection.work.display || titleCaseSlug(selection.work.slug)} · ${getEntryDisplayLabel(selection.work, selection.entry)}`;
     }
 
     renderWorksNav();
     syncSearchSeed();
 
-    const subids = getSubids(manifest);
-
-    if (!STATE.isMobileReader) {
-      fillSlot(document.getElementById("topBannerSlot"), ZONES.topBanner, subids.top, subids.work, 1);
-      fillRailStacks(subids);
-      resetDesktopVideoSlider();
-      scheduleVideoSlider();
-      positionDesktopStickyAwayFromVideo();
-    } else {
-      clearDesktopAdShells();
-      await loadMobileStickyBanner();
-    }
-
     reader.innerHTML = "";
-
-    const topAnchor = createEl("span", "reader-anchor");
-    topAnchor.id = "readerTopAnchor";
-    reader.appendChild(topAnchor);
-
     reader.appendChild(buildChapterMeta(manifest, images.length));
 
-    const note = createEl(
-      "div",
-      "note",
-      STATE.isMobileReader
-        ? "Tap through chapters up top, then just sink into the scroll."
-        : "Stay in the flow. Bottom controls keep you moving into the next chapter fast."
-    );
-    reader.appendChild(note);
-
-    reader.appendChild(buildTraversal("top"));
-
-    const contentStartAnchor = createEl("span", "reader-anchor");
-    contentStartAnchor.id = "readerContentStartAnchor";
-    reader.appendChild(contentStartAnchor);
-
-    const betweenEvery = STATE.isMobileReader ? 2 : (Number(manifest.ads?.between_every) || 0);
-    const betweenSlots = STATE.isMobileReader ? 1 : (Number(manifest.ads?.between_slots) || 3);
-    const finalBlock = STATE.isMobileReader ? 0 : Math.max(Number(manifest.ads?.final_block) || 0, CONFIG.bottomAdCount);
-
-    let groupNumber = 0;
-
-    for (let i = 0; i < images.length; i++) {
-      reader.appendChild(
-        imageBlock(
-          `${base}/${images[i]}`,
-          `${manifest.title || resolved.work.display || resolved.work.slug} page ${i + 1}`
-        )
-      );
-
-      const pageNumber = i + 1;
-      const shouldInsertBetween =
-        betweenEvery > 0 &&
-        pageNumber % betweenEvery === 0 &&
-        pageNumber < images.length;
-
-      if (shouldInsertBetween) {
-        groupNumber += 1;
-        reader.appendChild(betweenAd(manifest, groupNumber, betweenSlots));
-      }
+    for (let i = 0; i < images.length; i += 1) {
+      const imageWrap = createEl("article", "image-wrap");
+      const img = new Image();
+      img.loading = i < 2 ? "eager" : "lazy";
+      img.decoding = "async";
+      img.src = `${baseUrl}/${images[i]}`;
+      img.alt = `${selection.work.display || selection.work.slug} · ${getEntryDisplayLabel(selection.work, selection.entry)} · Page ${i + 1}`;
+      imageWrap.appendChild(img);
+      reader.appendChild(imageWrap);
     }
+  }
 
-    if (finalBlock > 0) {
-      reader.appendChild(endAds(manifest, finalBlock));
+  function resolveDefaultSelection() {
+    const work = STATE.works[0];
+    const entry = work?.entries?.[0];
+    return work && entry ? { work, entry } : null;
+  }
+
+  function resolveSelectionFromQuery() {
+    const url = new URL(window.location.href);
+    const dir = url.searchParams.get("dir");
+    const file = url.searchParams.get("file");
+    if (!dir || !file) return null;
+    return resolveSelection(dir, file);
+  }
+
+  function setQueryState(dir, file, replace = false) {
+    const url = new URL(window.location.href);
+    url.searchParams.set("dir", dir);
+    url.searchParams.set("file", file);
+
+    if (replace) {
+      history.replaceState({}, "", url);
+    } else {
+      history.pushState({}, "", url);
     }
-
-    reader.appendChild(buildTraversal("bottom"));
-
-    const recommend = buildRecommendationWidget();
-    if (recommend) {
-      reader.appendChild(recommend);
-      await ensureAdProviderScript(SPECIAL_ZONES.desktopRecommend.host);
-    }
-
-    const bottomAnchor = createEl("span", "reader-anchor");
-    bottomAnchor.id = "readerBottomAnchor";
-    reader.appendChild(bottomAnchor);
-
-    setupAdVisibilityObserver();
-    serveAds(true);
-    startRefreshTimers();
-    updateChapterProgress(0);
-
-    window.setTimeout(() => serveAds(true), 900);
-
-    if (STATE.isMobileReader) syncDialThumb();
   }
 
   async function switchEntry(dir, file, replace = false, options = {}) {
-    const { actionSource = "unknown" } = options;
+    try {
+      const selection = resolveSelection(dir, file);
+      if (!selection) {
+        throw createAppError(
+          ERROR_CODES.SELECTION_NOT_FOUND,
+          `Could not resolve selection for ${dir}/${file}`,
+          { dir, file }
+        );
+      }
 
-    if (shouldShowInterstitial(dir, file, options)) {
-      await fireChapterInterstitial();
+      setQueryState(dir, file, replace);
+      await buildReader();
+    } catch (err) {
+      throw createAppError(
+        ERROR_CODES.SWITCH_ENTRY_FAILED,
+        "Failed to switch entry",
+        { dir, file, cause: err.message, source: options.actionSource || "unknown" }
+      );
     }
-
-    if (!STATE.isMobileReader) {
-      resetDesktopVideoSlider();
-    }
-
-    setQueryState(dir, file, replace);
-
-    if (actionSource) burstServeAds();
-
-    await buildReader();
-
-    if (actionSource) {
-      window.setTimeout(() => burstServeAds(), 600);
-    }
-
-    scrollToReaderContentStartInstant();
-    showRetentionToast(`Now reading: ${STATE.currentEntry?.subtitle || titleCaseSlug(file)}`);
   }
 
-  // ------------------------------------------------------------
-  // Events
-  // ------------------------------------------------------------
+  function wireWorksNavClicks() {
+    document.addEventListener("click", async (e) => {
+      const workToggle = e.target.closest("[data-work-toggle]");
+      if (workToggle && STATE.isMobileReader) {
+        setMobileOpenWork(workToggle.dataset.workToggle);
+        return;
+      }
 
-  function wireDocumentVisibility() {
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden) return;
+      const chapterBtn = e.target.closest("button[data-dir][data-file]");
+      if (!chapterBtn) return;
 
-      serveAds(true);
-      window.setTimeout(() => {
-        refreshVisibleTopBanner();
-        refreshVisibleRailSlots();
-        refreshVisibleBetweenSlots();
-        refreshMobileSticky();
-      }, 400);
+      await switchEntry(chapterBtn.dataset.dir, chapterBtn.dataset.file, false, {
+        actionSource: "navigation"
+      });
     });
   }
-
-  function wireReaderClickMonetization() {
-    document.addEventListener("click", (e) => {
-      const target = e.target;
-      if (!(target instanceof Element)) return;
-
-      const hotSelectors = [
-        ".image-wrap img",
-        ".topworks-link",
-        ".topworks-trigger",
-        ".search-result-pill",
-        ".traversal-pill",
-        ".mobile-work-trigger",
-        ".mobile-chapter-link",
-        "#scrollToSearchBtn",
-        "#scrollToBottomTraversalBtn"
-      ];
-
-      if (hotSelectors.some(sel => target.closest(sel))) {
-        burstServeAds();
-      }
-    }, { passive: true });
-  }
-
-  function wireKeyboardNavigation() {
-    document.addEventListener("keydown", async (e) => {
-      const tag = document.activeElement?.tagName?.toLowerCase();
-      const isTyping = tag === "input" || tag === "textarea" || document.activeElement?.isContentEditable;
-      if (isTyping) return;
-
-      const { prev, next } = getEntryContext();
-
-      if (e.key === "ArrowLeft" && prev) {
-        e.preventDefault();
-        burstServeAds();
-        await switchEntry(STATE.currentWork.slug, prev.slug, false, { actionSource: "prev" });
-      }
-
-      if (e.key === "ArrowRight" && next) {
-        e.preventDefault();
-        burstServeAds();
-        await switchEntry(STATE.currentWork.slug, next.slug, false, { actionSource: "next" });
-      }
-
-      if (e.key === "/" && !isTyping) {
-        e.preventDefault();
-        const input = document.getElementById("chapterSearchInput");
-        if (input) {
-          input.focus();
-          input.select?.();
-        }
-      }
-    });
-  }
-
-  // ------------------------------------------------------------
-  // Boot
-  // ------------------------------------------------------------
 
   async function boot() {
-    await Promise.all([
-      ensureAdProviderScript("https://a.magsrv.com/ad-provider.js"),
-      ensureAdProviderScript("https://a.pemsrv.com/ad-provider.js")
-    ]);
+    try {
+      await loadLibrary();
+      await loadAllWorkMaps();
+      rebuildSearchIndex();
 
-    await loadLibrary();
+      renderWorksNav();
+      wireSearch();
+      wireWorksNavClicks();
 
-    wireTopFlyouts();
-    wireStickyControls();
-    wireProgressWatch();
-    wireSearch();
-    wireMobileWorksNav();
-    wireMobileDial();
-    wireDocumentVisibility();
-    wireReaderClickMonetization();
-    wireKeyboardNavigation();
-
-    await buildReader();
-
-    window.addEventListener("popstate", async () => {
       await buildReader();
-      scrollToReaderContentStartInstant();
-    });
+
+      window.addEventListener("popstate", async () => {
+        try {
+          await buildReader();
+        } catch (err) {
+          showFatalError(err);
+        }
+      });
+    } catch (err) {
+      throw createAppError(
+        err.code || ERROR_CODES.BOOT_FAILED,
+        err.message || "Boot failed",
+        err.details || {}
+      );
+    }
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    boot().catch(err => {
-      console.error(err);
-      const reader = document.getElementById("reader");
-      if (reader) {
-        reader.innerHTML = `
-          <section class="note">
-            <strong>Reader failed to load.</strong><br>
-            ${escapeHtml(err?.message || "Unknown error")}
-          </section>
-        `;
-      }
-    });
+    boot().catch(showFatalError);
   });
 })();
