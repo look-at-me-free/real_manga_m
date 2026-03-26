@@ -6462,24 +6462,6 @@
       ]
     },
     {
-      "id": 401,
-      "slug": "bark",
-      "display": "Berserk",
-      "top_pill": true,
-      "source": "a",
-      "entries": [
-        { "slug": "chapter_1", "path": "book_1/chapter_1", "type": "chapter", "subtitle": "Chapter 1" },
-        { "slug": "chapter_2", "path": "book_1/chapter_2", "type": "chapter", "subtitle": "Chapter 2" },
-        { "slug": "chapter_3", "path": "book_1/chapter_3", "type": "chapter", "subtitle": "Chapter 3" },
-        { "slug": "chapter_4", "path": "book_2/chapter_4", "type": "chapter", "subtitle": "Chapter 4" },
-        { "slug": "chapter_5", "path": "book_2/chapter_5", "type": "chapter", "subtitle": "Chapter 5" },
-        { "slug": "chapter_6", "path": "book_3/chapter_6", "type": "chapter", "subtitle": "Chapter 6" },
-        { "slug": "chapter_7", "path": "book_3/chapter_7", "type": "chapter", "subtitle": "Chapter 7" },
-        { "slug": "chapter_8", "path": "book_3/chapter_8", "type": "chapter", "subtitle": "Chapter 8" },
-        { "slug": "chapter_9", "path": "book_3/chapter_9", "type": "chapter", "subtitle": "Chapter 9" }
-      ]
-    },
-    {
     "id":  3724,
     "slug":  "The_Flowers_of_Evil",
     "display":  "The Flowers of Evil",
@@ -7616,6 +7598,978 @@
       "subtitle": "Volume 1 - Chapter 10"
     }
   ]
+},{
+  "id": 19991666,
+  "slug": "Berserk",
+  "display": "Berserk",
+  "top_pill": true,
+  "source": "e",
+
+  "use_map": true,
+  "map_file": "berserk.json",
+
+  "entries": [
+                    {
+                        "slug":  "v1_p1",
+                        "path":  "volume_01/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 1 - Part 1"
+                    },
+                    {
+                        "slug":  "v1_p2",
+                        "path":  "volume_01/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 1 - Part 2"
+                    },
+                    {
+                        "slug":  "v1_p3",
+                        "path":  "volume_01/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 1 - Part 3"
+                    },
+                    {
+                        "slug":  "v1_p4",
+                        "path":  "volume_01/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 1 - Part 4"
+                    },
+                    {
+                        "slug":  "v2_p1",
+                        "path":  "volume_02/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 2 - Part 1"
+                    },
+                    {
+                        "slug":  "v2_p2",
+                        "path":  "volume_02/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 2 - Part 2"
+                    },
+                    {
+                        "slug":  "v2_p3",
+                        "path":  "volume_02/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 2 - Part 3"
+                    },
+                    {
+                        "slug":  "v2_p4",
+                        "path":  "volume_02/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 2 - Part 4"
+                    },
+                    {
+                        "slug":  "v3_p1",
+                        "path":  "volume_03/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 3 - Part 1"
+                    },
+                    {
+                        "slug":  "v3_p2",
+                        "path":  "volume_03/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 3 - Part 2"
+                    },
+                    {
+                        "slug":  "v3_p3",
+                        "path":  "volume_03/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 3 - Part 3"
+                    },
+                    {
+                        "slug":  "v3_p4",
+                        "path":  "volume_03/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 3 - Part 4"
+                    },
+                    {
+                        "slug":  "v4_p1",
+                        "path":  "volume_04/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 4 - Part 1"
+                    },
+                    {
+                        "slug":  "v4_p2",
+                        "path":  "volume_04/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 4 - Part 2"
+                    },
+                    {
+                        "slug":  "v4_p3",
+                        "path":  "volume_04/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 4 - Part 3"
+                    },
+                    {
+                        "slug":  "v4_p4",
+                        "path":  "volume_04/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 4 - Part 4"
+                    },
+                    {
+                        "slug":  "v5_p1",
+                        "path":  "volume_05/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 5 - Part 1"
+                    },
+                    {
+                        "slug":  "v5_p2",
+                        "path":  "volume_05/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 5 - Part 2"
+                    },
+                    {
+                        "slug":  "v5_p3",
+                        "path":  "volume_05/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 5 - Part 3"
+                    },
+                    {
+                        "slug":  "v5_p4",
+                        "path":  "volume_05/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 5 - Part 4"
+                    },
+                    {
+                        "slug":  "v6_p1",
+                        "path":  "volume_06/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 6 - Part 1"
+                    },
+                    {
+                        "slug":  "v6_p2",
+                        "path":  "volume_06/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 6 - Part 2"
+                    },
+                    {
+                        "slug":  "v6_p3",
+                        "path":  "volume_06/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 6 - Part 3"
+                    },
+                    {
+                        "slug":  "v6_p4",
+                        "path":  "volume_06/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 6 - Part 4"
+                    },
+                    {
+                        "slug":  "v7_p1",
+                        "path":  "volume_07/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 7 - Part 1"
+                    },
+                    {
+                        "slug":  "v7_p2",
+                        "path":  "volume_07/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 7 - Part 2"
+                    },
+                    {
+                        "slug":  "v7_p3",
+                        "path":  "volume_07/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 7 - Part 3"
+                    },
+                    {
+                        "slug":  "v7_p4",
+                        "path":  "volume_07/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 7 - Part 4"
+                    },
+                    {
+                        "slug":  "v8_p1",
+                        "path":  "volume_08/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 8 - Part 1"
+                    },
+                    {
+                        "slug":  "v8_p2",
+                        "path":  "volume_08/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 8 - Part 2"
+                    },
+                    {
+                        "slug":  "v8_p3",
+                        "path":  "volume_08/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 8 - Part 3"
+                    },
+                    {
+                        "slug":  "v8_p4",
+                        "path":  "volume_08/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 8 - Part 4"
+                    },
+                    {
+                        "slug":  "v9_p1",
+                        "path":  "volume_09/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 9 - Part 1"
+                    },
+                    {
+                        "slug":  "v9_p2",
+                        "path":  "volume_09/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 9 - Part 2"
+                    },
+                    {
+                        "slug":  "v9_p3",
+                        "path":  "volume_09/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 9 - Part 3"
+                    },
+                    {
+                        "slug":  "v9_p4",
+                        "path":  "volume_09/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 9 - Part 4"
+                    },
+                    {
+                        "slug":  "v10_p1",
+                        "path":  "volume_10/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 10 - Part 1"
+                    },
+                    {
+                        "slug":  "v10_p2",
+                        "path":  "volume_10/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 10 - Part 2"
+                    },
+                    {
+                        "slug":  "v10_p3",
+                        "path":  "volume_10/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 10 - Part 3"
+                    },
+                    {
+                        "slug":  "v10_p4",
+                        "path":  "volume_10/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 10 - Part 4"
+                    },
+                    {
+                        "slug":  "v11_p1",
+                        "path":  "volume_11/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 11 - Part 1"
+                    },
+                    {
+                        "slug":  "v11_p2",
+                        "path":  "volume_11/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 11 - Part 2"
+                    },
+                    {
+                        "slug":  "v11_p3",
+                        "path":  "volume_11/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 11 - Part 3"
+                    },
+                    {
+                        "slug":  "v11_p4",
+                        "path":  "volume_11/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 11 - Part 4"
+                    },
+                    {
+                        "slug":  "v12_p1",
+                        "path":  "volume_12/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 12 - Part 1"
+                    },
+                    {
+                        "slug":  "v12_p2",
+                        "path":  "volume_12/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 12 - Part 2"
+                    },
+                    {
+                        "slug":  "v12_p3",
+                        "path":  "volume_12/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 12 - Part 3"
+                    },
+                    {
+                        "slug":  "v12_p4",
+                        "path":  "volume_12/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 12 - Part 4"
+                    },
+                    {
+                        "slug":  "v13_p1",
+                        "path":  "volume_13/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 13 - Part 1"
+                    },
+                    {
+                        "slug":  "v13_p2",
+                        "path":  "volume_13/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 13 - Part 2"
+                    },
+                    {
+                        "slug":  "v13_p3",
+                        "path":  "volume_13/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 13 - Part 3"
+                    },
+                    {
+                        "slug":  "v13_p4",
+                        "path":  "volume_13/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 13 - Part 4"
+                    },
+                    {
+                        "slug":  "v14_p1",
+                        "path":  "volume_14/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 14 - Part 1"
+                    },
+                    {
+                        "slug":  "v14_p2",
+                        "path":  "volume_14/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 14 - Part 2"
+                    },
+                    {
+                        "slug":  "v14_p3",
+                        "path":  "volume_14/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 14 - Part 3"
+                    },
+                    {
+                        "slug":  "v14_p4",
+                        "path":  "volume_14/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 14 - Part 4"
+                    },
+                    {
+                        "slug":  "v15_p1",
+                        "path":  "volume_15/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 15 - Part 1"
+                    },
+                    {
+                        "slug":  "v15_p2",
+                        "path":  "volume_15/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 15 - Part 2"
+                    },
+                    {
+                        "slug":  "v15_p3",
+                        "path":  "volume_15/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 15 - Part 3"
+                    },
+                    {
+                        "slug":  "v15_p4",
+                        "path":  "volume_15/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 15 - Part 4"
+                    },
+                    {
+                        "slug":  "v16_p1",
+                        "path":  "volume_16/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 16 - Part 1"
+                    },
+                    {
+                        "slug":  "v16_p2",
+                        "path":  "volume_16/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 16 - Part 2"
+                    },
+                    {
+                        "slug":  "v16_p3",
+                        "path":  "volume_16/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 16 - Part 3"
+                    },
+                    {
+                        "slug":  "v16_p4",
+                        "path":  "volume_16/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 16 - Part 4"
+                    },
+                    {
+                        "slug":  "v17_p1",
+                        "path":  "volume_17/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 17 - Part 1"
+                    },
+                    {
+                        "slug":  "v17_p2",
+                        "path":  "volume_17/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 17 - Part 2"
+                    },
+                    {
+                        "slug":  "v17_p3",
+                        "path":  "volume_17/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 17 - Part 3"
+                    },
+                    {
+                        "slug":  "v17_p4",
+                        "path":  "volume_17/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 17 - Part 4"
+                    },
+                    {
+                        "slug":  "v18_p1",
+                        "path":  "volume_18/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 18 - Part 1"
+                    },
+                    {
+                        "slug":  "v18_p2",
+                        "path":  "volume_18/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 18 - Part 2"
+                    },
+                    {
+                        "slug":  "v18_p3",
+                        "path":  "volume_18/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 18 - Part 3"
+                    },
+                    {
+                        "slug":  "v18_p4",
+                        "path":  "volume_18/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 18 - Part 4"
+                    },
+                    {
+                        "slug":  "v19_p1",
+                        "path":  "volume_19/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 19 - Part 1"
+                    },
+                    {
+                        "slug":  "v19_p2",
+                        "path":  "volume_19/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 19 - Part 2"
+                    },
+                    {
+                        "slug":  "v19_p3",
+                        "path":  "volume_19/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 19 - Part 3"
+                    },
+                    {
+                        "slug":  "v19_p4",
+                        "path":  "volume_19/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 19 - Part 4"
+                    },
+                    {
+                        "slug":  "v20_p1",
+                        "path":  "volume_20/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 20 - Part 1"
+                    },
+                    {
+                        "slug":  "v20_p2",
+                        "path":  "volume_20/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 20 - Part 2"
+                    },
+                    {
+                        "slug":  "v20_p3",
+                        "path":  "volume_20/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 20 - Part 3"
+                    },
+                    {
+                        "slug":  "v20_p4",
+                        "path":  "volume_20/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 20 - Part 4"
+                    },
+                    {
+                        "slug":  "v21_p1",
+                        "path":  "volume_21/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 21 - Part 1"
+                    },
+                    {
+                        "slug":  "v21_p2",
+                        "path":  "volume_21/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 21 - Part 2"
+                    },
+                    {
+                        "slug":  "v21_p3",
+                        "path":  "volume_21/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 21 - Part 3"
+                    },
+                    {
+                        "slug":  "v21_p4",
+                        "path":  "volume_21/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 21 - Part 4"
+                    },
+                    {
+                        "slug":  "v22_p1",
+                        "path":  "volume_22/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 22 - Part 1"
+                    },
+                    {
+                        "slug":  "v22_p2",
+                        "path":  "volume_22/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 22 - Part 2"
+                    },
+                    {
+                        "slug":  "v22_p3",
+                        "path":  "volume_22/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 22 - Part 3"
+                    },
+                    {
+                        "slug":  "v22_p4",
+                        "path":  "volume_22/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 22 - Part 4"
+                    },
+                    {
+                        "slug":  "v23_p1",
+                        "path":  "volume_23/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 23 - Part 1"
+                    },
+                    {
+                        "slug":  "v23_p2",
+                        "path":  "volume_23/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 23 - Part 2"
+                    },
+                    {
+                        "slug":  "v23_p3",
+                        "path":  "volume_23/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 23 - Part 3"
+                    },
+                    {
+                        "slug":  "v23_p4",
+                        "path":  "volume_23/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 23 - Part 4"
+                    },
+                    {
+                        "slug":  "v24_p1",
+                        "path":  "volume_24/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 24 - Part 1"
+                    },
+                    {
+                        "slug":  "v24_p2",
+                        "path":  "volume_24/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 24 - Part 2"
+                    },
+                    {
+                        "slug":  "v24_p3",
+                        "path":  "volume_24/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 24 - Part 3"
+                    },
+                    {
+                        "slug":  "v24_p4",
+                        "path":  "volume_24/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 24 - Part 4"
+                    },
+                    {
+                        "slug":  "v25_p1",
+                        "path":  "volume_25/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 25 - Part 1"
+                    },
+                    {
+                        "slug":  "v25_p2",
+                        "path":  "volume_25/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 25 - Part 2"
+                    },
+                    {
+                        "slug":  "v25_p3",
+                        "path":  "volume_25/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 25 - Part 3"
+                    },
+                    {
+                        "slug":  "v25_p4",
+                        "path":  "volume_25/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 25 - Part 4"
+                    },
+                    {
+                        "slug":  "v26_p1",
+                        "path":  "volume_26/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 26 - Part 1"
+                    },
+                    {
+                        "slug":  "v26_p2",
+                        "path":  "volume_26/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 26 - Part 2"
+                    },
+                    {
+                        "slug":  "v26_p3",
+                        "path":  "volume_26/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 26 - Part 3"
+                    },
+                    {
+                        "slug":  "v26_p4",
+                        "path":  "volume_26/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 26 - Part 4"
+                    },
+                    {
+                        "slug":  "v27_p1",
+                        "path":  "volume_27/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 27 - Part 1"
+                    },
+                    {
+                        "slug":  "v27_p2",
+                        "path":  "volume_27/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 27 - Part 2"
+                    },
+                    {
+                        "slug":  "v27_p3",
+                        "path":  "volume_27/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 27 - Part 3"
+                    },
+                    {
+                        "slug":  "v27_p4",
+                        "path":  "volume_27/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 27 - Part 4"
+                    },
+                    {
+                        "slug":  "v28_p1",
+                        "path":  "volume_28/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 28 - Part 1"
+                    },
+                    {
+                        "slug":  "v28_p2",
+                        "path":  "volume_28/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 28 - Part 2"
+                    },
+                    {
+                        "slug":  "v28_p3",
+                        "path":  "volume_28/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 28 - Part 3"
+                    },
+                    {
+                        "slug":  "v28_p4",
+                        "path":  "volume_28/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 28 - Part 4"
+                    },
+                    {
+                        "slug":  "v29_p1",
+                        "path":  "volume_29/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 29 - Part 1"
+                    },
+                    {
+                        "slug":  "v29_p2",
+                        "path":  "volume_29/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 29 - Part 2"
+                    },
+                    {
+                        "slug":  "v29_p3",
+                        "path":  "volume_29/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 29 - Part 3"
+                    },
+                    {
+                        "slug":  "v29_p4",
+                        "path":  "volume_29/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 29 - Part 4"
+                    },
+                    {
+                        "slug":  "v30_p1",
+                        "path":  "volume_30/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 30 - Part 1"
+                    },
+                    {
+                        "slug":  "v30_p2",
+                        "path":  "volume_30/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 30 - Part 2"
+                    },
+                    {
+                        "slug":  "v30_p3",
+                        "path":  "volume_30/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 30 - Part 3"
+                    },
+                    {
+                        "slug":  "v30_p4",
+                        "path":  "volume_30/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 30 - Part 4"
+                    },
+                    {
+                        "slug":  "v31_p1",
+                        "path":  "volume_31/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 31 - Part 1"
+                    },
+                    {
+                        "slug":  "v31_p2",
+                        "path":  "volume_31/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 31 - Part 2"
+                    },
+                    {
+                        "slug":  "v31_p3",
+                        "path":  "volume_31/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 31 - Part 3"
+                    },
+                    {
+                        "slug":  "v31_p4",
+                        "path":  "volume_31/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 31 - Part 4"
+                    },
+                    {
+                        "slug":  "v32_p1",
+                        "path":  "volume_32/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 32 - Part 1"
+                    },
+                    {
+                        "slug":  "v32_p2",
+                        "path":  "volume_32/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 32 - Part 2"
+                    },
+                    {
+                        "slug":  "v32_p3",
+                        "path":  "volume_32/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 32 - Part 3"
+                    },
+                    {
+                        "slug":  "v32_p4",
+                        "path":  "volume_32/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 32 - Part 4"
+                    },
+                    {
+                        "slug":  "v33_p1",
+                        "path":  "volume_33/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 33 - Part 1"
+                    },
+                    {
+                        "slug":  "v33_p2",
+                        "path":  "volume_33/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 33 - Part 2"
+                    },
+                    {
+                        "slug":  "v33_p3",
+                        "path":  "volume_33/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 33 - Part 3"
+                    },
+                    {
+                        "slug":  "v33_p4",
+                        "path":  "volume_33/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 33 - Part 4"
+                    },
+                    {
+                        "slug":  "v34_p1",
+                        "path":  "volume_34/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 34 - Part 1"
+                    },
+                    {
+                        "slug":  "v34_p2",
+                        "path":  "volume_34/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 34 - Part 2"
+                    },
+                    {
+                        "slug":  "v34_p3",
+                        "path":  "volume_34/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 34 - Part 3"
+                    },
+                    {
+                        "slug":  "v34_p4",
+                        "path":  "volume_34/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 34 - Part 4"
+                    },
+                    {
+                        "slug":  "v35_p1",
+                        "path":  "volume_35/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 35 - Part 1"
+                    },
+                    {
+                        "slug":  "v35_p2",
+                        "path":  "volume_35/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 35 - Part 2"
+                    },
+                    {
+                        "slug":  "v35_p3",
+                        "path":  "volume_35/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 35 - Part 3"
+                    },
+                    {
+                        "slug":  "v35_p4",
+                        "path":  "volume_35/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 35 - Part 4"
+                    },
+                    {
+                        "slug":  "v36_p1",
+                        "path":  "volume_36/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 36 - Part 1"
+                    },
+                    {
+                        "slug":  "v36_p2",
+                        "path":  "volume_36/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 36 - Part 2"
+                    },
+                    {
+                        "slug":  "v36_p3",
+                        "path":  "volume_36/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 36 - Part 3"
+                    },
+                    {
+                        "slug":  "v36_p4",
+                        "path":  "volume_36/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 36 - Part 4"
+                    },
+                    {
+                        "slug":  "v37_p1",
+                        "path":  "volume_37/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 37 - Part 1"
+                    },
+                    {
+                        "slug":  "v37_p2",
+                        "path":  "volume_37/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 37 - Part 2"
+                    },
+                    {
+                        "slug":  "v37_p3",
+                        "path":  "volume_37/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 37 - Part 3"
+                    },
+                    {
+                        "slug":  "v37_p4",
+                        "path":  "volume_37/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 37 - Part 4"
+                    },
+                    {
+                        "slug":  "v38_p1",
+                        "path":  "volume_38/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 38 - Part 1"
+                    },
+                    {
+                        "slug":  "v38_p2",
+                        "path":  "volume_38/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 38 - Part 2"
+                    },
+                    {
+                        "slug":  "v38_p3",
+                        "path":  "volume_38/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 38 - Part 3"
+                    },
+                    {
+                        "slug":  "v38_p4",
+                        "path":  "volume_38/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 38 - Part 4"
+                    },
+                    {
+                        "slug":  "v39_p1",
+                        "path":  "volume_39/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 39 - Part 1"
+                    },
+                    {
+                        "slug":  "v39_p2",
+                        "path":  "volume_39/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 39 - Part 2"
+                    },
+                    {
+                        "slug":  "v39_p3",
+                        "path":  "volume_39/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 39 - Part 3"
+                    },
+                    {
+                        "slug":  "v39_p4",
+                        "path":  "volume_39/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 39 - Part 4"
+                    },
+                    {
+                        "slug":  "v40_p1",
+                        "path":  "volume_40/part_1",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 40 - Part 1"
+                    },
+                    {
+                        "slug":  "v40_p2",
+                        "path":  "volume_40/part_2",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 40 - Part 2"
+                    },
+                    {
+                        "slug":  "v40_p3",
+                        "path":  "volume_40/part_3",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 40 - Part 3"
+                    },
+                    {
+                        "slug":  "v40_p4",
+                        "path":  "volume_40/part_4",
+                        "type":  "chapter",
+                        "subtitle":  "Volume 40 - Part 4"
+                    }
+                ]
 },
         {
       "id": 1001,
