@@ -1,30 +1,24 @@
 (() => {
   "use strict";
 
-  // /notes
-  // ------------------------------------------------------------------
-  // SYSTEM MODEL
-  // library.json = physical archive truth
-  // search_maps/*.json = semantic overlay
-  //
-  // Missing use_map => false
-  // Only explicit use_map: true enables a map file.
-  //
-  // Future branchable architecture:
-  // - stable targets: work / entry / page / region
-  // - current semantic rows: entry / chapter / arc / tag_cluster / annotation
-  // - future layers can attach without breaking the archive
-  // ------------------------------------------------------------------
+  /* =========================================================
+     CONFIG
+  ========================================================= */
 
   const CONFIG = {
     libraryFile: "library.json",
     mapsBasePath: "search_maps",
     defaultWorksBase: "https://pub-cd01009a7c6c464aa0b093e33aa5ae51.r2.dev/works",
+    fallbackWorkBlockBase: "https://pub-f78ac228b8f14431804e721a35484412.r2.dev/works",
     itemJsonName: "item.json",
     searchResultsLimit: 12,
     prefetchThreshold: 0.7,
     toastMs: 1800
   };
+
+  /* =========================================================
+     ERROR CODES
+  ========================================================= */
 
   const ERROR = {
     LIBRARY_FETCH_FAILED: "LIBRARY_FETCH_FAILED",
@@ -32,6 +26,7 @@
     NO_WORKS_FOUND: "NO_WORKS_FOUND",
     MAP_FETCH_FAILED: "MAP_FETCH_FAILED",
     MAP_INVALID: "MAP_INVALID",
+    WORK_BLOCK_FETCH_FAILED: "WORK_BLOCK_FETCH_FAILED",
     SEARCH_INDEX_BUILD_FAILED: "SEARCH_INDEX_BUILD_FAILED",
     SELECTION_NOT_FOUND: "SELECTION_NOT_FOUND",
     MANIFEST_FETCH_FAILED: "MANIFEST_FETCH_FAILED",
@@ -42,6 +37,10 @@
     BUILD_READER_FAILED: "BUILD_READER_FAILED",
     BOOT_FAILED: "BOOT_FAILED"
   };
+
+  /* =========================================================
+     STATE
+  ========================================================= */
 
   const STATE = {
     works: [],
@@ -57,8 +56,13 @@
     navWired: false,
     progressWired: false,
     dialWired: false,
+    stickyWired: false,
     mobileOpenWorkSlug: ""
   };
+
+  /* =========================================================
+     DOM HELPERS
+  ========================================================= */
 
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -69,6 +73,10 @@
     if (text) el.textContent = text;
     return el;
   }
+
+  /* =========================================================
+     UTILS
+  ========================================================= */
 
   function normalizeKey(v) {
     return String(v ?? "").trim().toLowerCase();
@@ -117,6 +125,7 @@
 
   function showFatalError(err) {
     const payload = logError(err, "Fatal");
+
     const title = $("#workTitle");
     const reader = $("#reader");
     const stat = $("#chapterSearchStat");
@@ -135,43 +144,9 @@
     }
   }
 
-  function shouldUseMap(work) {
-    return work?.use_map === true;
-  }
-
-  function getMapFile(work) {
-    if (!shouldUseMap(work)) return null;
-    return `${CONFIG.mapsBasePath}/${work.map_file || `${work.slug}.json`}`;
-  }
-
-  function getMap(workOrSlug) {
-    const slug = typeof workOrSlug === "string" ? workOrSlug : workOrSlug?.slug;
-    return slug ? (STATE.maps.get(slug) || null) : null;
-  }
-
-  function getChapterMeta(work, entry) {
-    const map = getMap(work);
-    return map?.chapter_locations?.[entry.slug] || null;
-  }
-
-  function getEntryDisplayLabel(work, entry) {
-    const meta = getChapterMeta(work, entry);
-    return meta?.display_label || entry.subtitle || titleCaseSlug(entry.slug);
-  }
-
-  function makeSearchRow(row) {
-    return {
-      type: row.type || "entry",
-      workSlug: row.workSlug,
-      workLabel: row.workLabel,
-      entrySlug: row.entrySlug || "",
-      entryLabel: row.entryLabel || "",
-      subLabel: row.subLabel || "",
-      page: row.page ?? null,
-      zoneId: row.zoneId ?? null,
-      searchKey: normalizeKey(row.searchKey || "")
-    };
-  }
+  /* =========================================================
+     LIBRARY
+  ========================================================= */
 
   async function loadLibrary() {
     let data;
@@ -191,6 +166,116 @@
 
     STATE.works = data.works.filter(Boolean);
     STATE.sourceMap = data.sources && typeof data.sources === "object" ? data.sources : {};
+  }
+
+  function getSourceBaseByKey(sourceKey) {
+    return sourceKey ? normalizeBaseUrl(STATE.sourceMap[sourceKey] || "") : "";
+  }
+
+  /* =========================================================
+     WORK BLOCK FALLBACK
+  ========================================================= */
+
+  function workNeedsBlockFallback(work) {
+    if (!work) return true;
+    if (!Array.isArray(work.entries)) return true;
+    if (work.entries.length === 0) return true;
+    return false;
+  }
+
+  function getPrimaryWorkBlockUrl(work) {
+    const sourceBase = getSourceBaseByKey(work.source) || CONFIG.defaultWorksBase;
+    const slug = work.slug;
+    return `${sourceBase}/${encodeURIComponent(slug)}/manifest_work_block_${encodeURIComponent(slug)}.json`;
+  }
+
+  function getFallbackWorkBlockUrl(work) {
+    if (!CONFIG.fallbackWorkBlockBase) return null;
+    const slug = work.slug;
+    return `${CONFIG.fallbackWorkBlockBase}/${encodeURIComponent(slug)}/manifest_work_block_${encodeURIComponent(slug)}.json`;
+  }
+
+  function mergeWorkData(libraryWork, blockWork) {
+    return {
+      id: libraryWork?.id ?? blockWork?.id ?? null,
+      slug: libraryWork?.slug || blockWork?.slug || "",
+      display: libraryWork?.display || blockWork?.display || titleCaseSlug(blockWork?.slug || ""),
+      top_pill: libraryWork?.top_pill ?? blockWork?.top_pill ?? true,
+      source: libraryWork?.source || blockWork?.source || "",
+      use_map: libraryWork?.use_map === true,
+      map_file: libraryWork?.map_file || null,
+      entries: Array.isArray(libraryWork?.entries) && libraryWork.entries.length
+        ? libraryWork.entries
+        : (Array.isArray(blockWork?.entries) ? blockWork.entries : [])
+    };
+  }
+
+  async function loadWorkBlockWithFallback(work) {
+    const primaryUrl = getPrimaryWorkBlockUrl(work);
+    const fallbackUrl = getFallbackWorkBlockUrl(work);
+
+    try {
+      return await fetchJson(primaryUrl);
+    } catch (primaryErr) {
+      if (!fallbackUrl) {
+        throw appError(ERROR.WORK_BLOCK_FETCH_FAILED, "Primary work block fetch failed", {
+          slug: work.slug,
+          primaryUrl,
+          cause: primaryErr.message
+        });
+      }
+
+      try {
+        return await fetchJson(fallbackUrl);
+      } catch (fallbackErr) {
+        throw appError(ERROR.WORK_BLOCK_FETCH_FAILED, "Primary and fallback work block fetch failed", {
+          slug: work.slug,
+          primaryUrl,
+          fallbackUrl,
+          primaryCause: primaryErr.message,
+          fallbackCause: fallbackErr.message
+        });
+      }
+    }
+  }
+
+  async function hydrateWorksFromBlocksIfNeeded() {
+    const resolved = [];
+
+    for (const work of STATE.works) {
+      if (!workNeedsBlockFallback(work)) {
+        resolved.push(work);
+        continue;
+      }
+
+      try {
+        const blockWork = await loadWorkBlockWithFallback(work);
+        resolved.push(mergeWorkData(work, blockWork));
+      } catch (err) {
+        logError(err, `Work block fallback failed for ${work.slug}`);
+        resolved.push(work);
+      }
+    }
+
+    STATE.works = resolved;
+  }
+
+  /* =========================================================
+     MAPS
+  ========================================================= */
+
+  function shouldUseMap(work) {
+    return work?.use_map === true;
+  }
+
+  function getMapFile(work) {
+    if (!shouldUseMap(work)) return null;
+    return `${CONFIG.mapsBasePath}/${work.map_file || `${work.slug}.json`}`;
+  }
+
+  function getMap(workOrSlug) {
+    const slug = typeof workOrSlug === "string" ? workOrSlug : workOrSlug?.slug;
+    return slug ? (STATE.maps.get(slug) || null) : null;
   }
 
   async function loadWorkMap(work) {
@@ -224,6 +309,34 @@
     await Promise.all(STATE.works.filter(shouldUseMap).map(loadWorkMap));
   }
 
+  function getChapterMeta(work, entry) {
+    const map = getMap(work);
+    return map?.chapter_locations?.[entry.slug] || null;
+  }
+
+  function getEntryDisplayLabel(work, entry) {
+    const meta = getChapterMeta(work, entry);
+    return meta?.display_label || entry.subtitle || titleCaseSlug(entry.slug);
+  }
+
+  /* =========================================================
+     SEARCH INDEX
+  ========================================================= */
+
+  function makeSearchRow(row) {
+    return {
+      type: row.type || "entry",
+      workSlug: row.workSlug,
+      workLabel: row.workLabel,
+      entrySlug: row.entrySlug || "",
+      entryLabel: row.entryLabel || "",
+      subLabel: row.subLabel || "",
+      page: row.page ?? null,
+      zoneId: row.zoneId ?? null,
+      searchKey: normalizeKey(row.searchKey || "")
+    };
+  }
+
   function buildSearchIndex() {
     try {
       const rows = [];
@@ -234,6 +347,7 @@
 
         for (const entry of work.entries || []) {
           const chapterMeta = getChapterMeta(work, entry);
+
           rows.push(makeSearchRow({
             type: "entry",
             workSlug: work.slug,
@@ -440,12 +554,12 @@
     refresh();
   }
 
+  /* =========================================================
+     SELECTION / PATHS
+  ========================================================= */
+
   function resolveSourceKey(work, entry) {
     return entry?.source || work?.source || "";
-  }
-
-  function getSourceBaseByKey(sourceKey) {
-    return sourceKey ? normalizeBaseUrl(STATE.sourceMap[sourceKey] || "") : "";
   }
 
   function getWorkBase(work, entry) {
@@ -462,7 +576,6 @@
 
     const path = String(entry?.path || entry?.slug || "");
     const safeParts = path.split("/").filter(Boolean).map(part => encodeURIComponent(part));
-
     return `${getWorkBase(work, entry)}/${encodeURIComponent(work.slug)}/${safeParts.join("/")}/${CONFIG.itemJsonName}`;
   }
 
@@ -494,41 +607,8 @@
     const url = new URL(window.location.href);
     url.searchParams.set("dir", dir);
     url.searchParams.set("file", file);
-
     if (replace) history.replaceState({}, "", url);
     else history.pushState({}, "", url);
-  }
-
-  function buildImageList(manifest) {
-    if (Array.isArray(manifest.images) && manifest.images.length) return manifest.images;
-
-    if (Number.isFinite(manifest.pages) && manifest.pages > 0) {
-      const ext = manifest.extension || "jpg";
-      const padding = Number.isFinite(manifest.padding) ? manifest.padding : 2;
-      return Array.from({ length: manifest.pages }, (_, i) => {
-        return `${String(i + 1).padStart(padding, "0")}.${ext}`;
-      });
-    }
-
-    return [];
-  }
-
-  function validateManifest(manifest, itemUrl) {
-    if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) {
-      throw appError(ERROR.MANIFEST_INVALID, "item.json is not a valid object", { itemUrl });
-    }
-
-    const baseUrl = normalizeBaseUrl(manifest.base_url);
-    if (!baseUrl) {
-      throw appError(ERROR.MANIFEST_NO_BASE_URL, "item.json missing base_url", { itemUrl });
-    }
-
-    const images = buildImageList(manifest);
-    if (!images.length) {
-      throw appError(ERROR.MANIFEST_NO_IMAGES, "No images found in item.json", { itemUrl });
-    }
-
-    return { manifest, baseUrl, images };
   }
 
   function getEntryIndex(work, entry) {
@@ -542,6 +622,112 @@
     if (currentIndex < 0) return null;
     return entries[currentIndex + offset] || null;
   }
+
+  /* =========================================================
+     ADS FROM MANIFEST
+  ========================================================= */
+
+  function getSubids(manifest) {
+    const subids = manifest?.subids || {};
+
+    return {
+      work: Number(subids.work) || 1101,
+      top: Number(subids.top) || 5865232,
+      left: Number(subids.left) || 5865238,
+      right: Number(subids.right) || 5865240,
+      between: Number(subids.between) || 5867482
+    };
+  }
+
+  function makeIns(zoneId) {
+    const ins = document.createElement("ins");
+    ins.className = "eas6a97888e2";
+    ins.dataset.zoneid = String(zoneId);
+    ins.style.display = "block";
+    return ins;
+  }
+
+  function serveAdsSafe() {
+    try {
+      window.AdProvider = window.AdProvider || [];
+      window.AdProvider.push({ serve: {} });
+    } catch (err) {
+      console.warn("Ad serve failed", err);
+    }
+  }
+
+  function buildTopBanner(manifest) {
+    const shell = document.getElementById("topBannerSlot") || document.querySelector(".top-banner-inner");
+    if (!shell) return;
+
+    const subids = getSubids(manifest);
+    shell.innerHTML = "";
+    shell.appendChild(makeIns(subids.top));
+  }
+
+  function fillRail(slotId, zoneId) {
+    const slot = document.getElementById(slotId);
+    if (!slot) return;
+
+    slot.innerHTML = "";
+    slot.classList.add("slot");
+    slot.appendChild(makeIns(zoneId));
+  }
+
+  function buildRails(manifest) {
+    const subids = getSubids(manifest);
+
+    const LEFT_RAIL_IDS = [
+      "leftRailSlot1","leftRailSlot2","leftRailSlot3","leftRailSlot4","leftRailSlot5","leftRailSlot6",
+      "leftRailSlot7","leftRailSlot8","leftRailSlot9","leftRailSlot10","leftRailSlot11","leftRailSlot12"
+    ];
+
+    const RIGHT_RAIL_IDS = [
+      "rightRailSlot1","rightRailSlot2","rightRailSlot3","rightRailSlot4","rightRailSlot5","rightRailSlot6",
+      "rightRailSlot7","rightRailSlot8","rightRailSlot9","rightRailSlot10","rightRailSlot11","rightRailSlot12"
+    ];
+
+    for (const id of LEFT_RAIL_IDS) fillRail(id, subids.left);
+    for (const id of RIGHT_RAIL_IDS) fillRail(id, subids.right);
+  }
+
+  function betweenAd(manifest, groupNumber, betweenSlots) {
+    const subids = getSubids(manifest);
+
+    const wrap = createEl("section", "between-grid");
+    const count = Math.max(1, Number(betweenSlots) || 3);
+
+    for (let i = 0; i < count; i += 1) {
+      const slot = createEl("div", "slot between-slot");
+      slot.dataset.group = String(groupNumber);
+      slot.dataset.index = String(i + 1);
+      slot.appendChild(makeIns(subids.between));
+      wrap.appendChild(slot);
+    }
+
+    return wrap;
+  }
+
+  function endAds(manifest, finalBlock) {
+    const subids = getSubids(manifest);
+
+    const wrap = createEl("section", "end-grid");
+    const count = Math.max(1, Number(finalBlock) || 6);
+
+    for (let i = 0; i < count; i += 1) {
+      const slot = createEl("div", "slot end-slot");
+      slot.dataset.final = "1";
+      slot.dataset.index = String(i + 1);
+      slot.appendChild(makeIns(subids.between));
+      wrap.appendChild(slot);
+    }
+
+    return wrap;
+  }
+
+  /* =========================================================
+     WORKS NAV / MOBILE DIAL
+  ========================================================= */
 
   function setMobileOpenWork(workSlug) {
     STATE.mobileOpenWorkSlug = normalizeKey(workSlug || "");
@@ -715,6 +901,10 @@
     syncDialThumb();
   }
 
+  /* =========================================================
+     TOAST / PROGRESS / SCROLL
+  ========================================================= */
+
   function showRetentionToast(message) {
     if (!message) return;
 
@@ -732,6 +922,139 @@
     showRetentionToast._timer = setTimeout(() => {
       toast.classList.remove("show");
     }, CONFIG.toastMs);
+  }
+
+  function updatePageProgressBar(ratio) {
+    const bar = $("#pageProgressBar");
+    if (!bar) return;
+    bar.style.width = `${Math.max(0, Math.min(1, ratio)) * 100}%`;
+  }
+
+  function updateChapterProgress(ratio) {
+    const pct = Math.round(Math.max(0, Math.min(1, ratio)) * 100);
+    const fill = $("#chapterProgressFill");
+    const percent = $("#chapterProgressPercent");
+    const label = $("#chapterProgressLabel");
+
+    if (fill) fill.style.width = `${pct}%`;
+    if (percent) percent.textContent = `${pct}%`;
+    if (label) label.textContent = getEntryDisplayLabel(STATE.currentWork, STATE.currentEntry) || "Chapter Progress";
+  }
+
+  function getScrollRatio() {
+    const scrollEl = document.scrollingElement || document.documentElement;
+    const maxScroll = Math.max(1, scrollEl.scrollHeight - window.innerHeight);
+    const top = Math.max(0, scrollEl.scrollTop);
+    return maxScroll > 0 ? Math.min(1, top / maxScroll) : 0;
+  }
+
+  function maybePrefetchNext() {
+    if (STATE.nextPrefetch) return;
+
+    const next = getEntryByOffset(STATE.currentWork, STATE.currentEntry, 1);
+    if (!next) return;
+
+    try {
+      const url = getItemJsonUrl(STATE.currentWork, next);
+      STATE.nextPrefetch = fetch(url, { cache: "force-cache" }).catch(() => null);
+    } catch {
+      // ignore
+    }
+  }
+
+  function updateReaderProgress() {
+    const ratio = getScrollRatio();
+    updatePageProgressBar(ratio);
+    updateChapterProgress(ratio);
+
+    if (ratio >= CONFIG.prefetchThreshold) {
+      maybePrefetchNext();
+    }
+  }
+
+  function wireProgressWatch() {
+    if (STATE.progressWired) return;
+    STATE.progressWired = true;
+
+    window.addEventListener("scroll", updateReaderProgress, { passive: true });
+    window.addEventListener("resize", updateReaderProgress);
+  }
+
+  function scrollToPageIndex(pageNumber) {
+    const wraps = $$(".image-wrap");
+    if (!wraps.length) return;
+    const target = wraps[Math.max(0, Math.min(wraps.length - 1, pageNumber - 1))];
+    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function scrollToReaderTop() {
+    const reader = $("#reader");
+    if (!reader) return;
+    reader.scrollIntoView({ behavior: "auto", block: "start" });
+  }
+
+  function scrollToReaderBottom() {
+    const reader = $("#reader");
+    if (!reader) return;
+    window.scrollTo({
+      top: reader.offsetTop + reader.offsetHeight,
+      behavior: "smooth"
+    });
+  }
+
+  function scrollToSearchBar() {
+    const anchor = $("#searchBarAnchor");
+    if (!anchor) return;
+    anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function wireStickyButtons() {
+    if (STATE.stickyWired) return;
+    STATE.stickyWired = true;
+
+    $("#scrollToSearchBtn")?.addEventListener("click", () => {
+      scrollToSearchBar();
+    });
+
+    $("#scrollToBottomTraversalBtn")?.addEventListener("click", () => {
+      scrollToReaderBottom();
+    });
+  }
+
+  /* =========================================================
+     MANIFEST / READER BUILD
+  ========================================================= */
+
+  function buildImageList(manifest) {
+    if (Array.isArray(manifest.images) && manifest.images.length) return manifest.images;
+
+    if (Number.isFinite(manifest.pages) && manifest.pages > 0) {
+      const ext = manifest.extension || "jpg";
+      const padding = Number.isFinite(manifest.padding) ? manifest.padding : 2;
+      return Array.from({ length: manifest.pages }, (_, i) => {
+        return `${String(i + 1).padStart(padding, "0")}.${ext}`;
+      });
+    }
+
+    return [];
+  }
+
+  function validateManifest(manifest, itemUrl) {
+    if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) {
+      throw appError(ERROR.MANIFEST_INVALID, "item.json is not a valid object", { itemUrl });
+    }
+
+    const baseUrl = normalizeBaseUrl(manifest.base_url);
+    if (!baseUrl) {
+      throw appError(ERROR.MANIFEST_NO_BASE_URL, "item.json missing base_url", { itemUrl });
+    }
+
+    const images = buildImageList(manifest);
+    if (!images.length) {
+      throw appError(ERROR.MANIFEST_NO_IMAGES, "No images found in item.json", { itemUrl });
+    }
+
+    return { manifest, baseUrl, images };
   }
 
   function buildChapterMeta(manifest, imageCount) {
@@ -820,102 +1143,7 @@
     );
 
     if (!hits.length) return null;
-
     return createEl("div", "page-annotation-badge", `${hits.length} note${hits.length === 1 ? "" : "s"}`);
-  }
-
-  function updatePageProgressBar(ratio) {
-    const bar = $("#pageProgressBar");
-    if (!bar) return;
-    bar.style.width = `${Math.max(0, Math.min(1, ratio)) * 100}%`;
-  }
-
-  function updateChapterProgress(ratio) {
-    const pct = Math.round(Math.max(0, Math.min(1, ratio)) * 100);
-    const fill = $("#chapterProgressFill");
-    const percent = $("#chapterProgressPercent");
-    const label = $("#chapterProgressLabel");
-
-    if (fill) fill.style.width = `${pct}%`;
-    if (percent) percent.textContent = `${pct}%`;
-    if (label) label.textContent = getEntryDisplayLabel(STATE.currentWork, STATE.currentEntry) || "Chapter Progress";
-  }
-
-  function getScrollRatio() {
-    const scrollEl = document.scrollingElement || document.documentElement;
-    const maxScroll = Math.max(1, scrollEl.scrollHeight - window.innerHeight);
-    const top = Math.max(0, scrollEl.scrollTop);
-    return maxScroll > 0 ? Math.min(1, top / maxScroll) : 0;
-  }
-
-  function maybePrefetchNext() {
-    if (STATE.nextPrefetch) return;
-
-    const next = getEntryByOffset(STATE.currentWork, STATE.currentEntry, 1);
-    if (!next) return;
-
-    try {
-      const url = getItemJsonUrl(STATE.currentWork, next);
-      STATE.nextPrefetch = fetch(url, { cache: "force-cache" }).catch(() => null);
-    } catch {
-      // ignore prefetch errors
-    }
-  }
-
-  function updateReaderProgress() {
-    const ratio = getScrollRatio();
-    updatePageProgressBar(ratio);
-    updateChapterProgress(ratio);
-
-    if (ratio >= CONFIG.prefetchThreshold) {
-      maybePrefetchNext();
-    }
-  }
-
-  function wireProgressWatch() {
-    if (STATE.progressWired) return;
-    STATE.progressWired = true;
-
-    window.addEventListener("scroll", updateReaderProgress, { passive: true });
-    window.addEventListener("resize", updateReaderProgress);
-  }
-
-  function scrollToPageIndex(pageNumber) {
-    const wraps = $$(".image-wrap");
-    if (!wraps.length) return;
-    const target = wraps[Math.max(0, Math.min(wraps.length - 1, pageNumber - 1))];
-    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  function scrollToReaderTop() {
-    const reader = $("#reader");
-    if (!reader) return;
-    reader.scrollIntoView({ behavior: "auto", block: "start" });
-  }
-
-  function scrollToReaderBottom() {
-    const reader = $("#reader");
-    if (!reader) return;
-    window.scrollTo({
-      top: reader.offsetTop + reader.offsetHeight,
-      behavior: "smooth"
-    });
-  }
-
-  function scrollToSearchBar() {
-    const anchor = $("#searchBarAnchor");
-    if (!anchor) return;
-    anchor.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  function wireStickyButtons() {
-    $("#scrollToSearchBtn")?.addEventListener("click", () => {
-      scrollToSearchBar();
-    });
-
-    $("#scrollToBottomTraversalBtn")?.addEventListener("click", () => {
-      scrollToReaderBottom();
-    });
   }
 
   async function buildReader() {
@@ -960,6 +1188,9 @@
     renderWorksNav();
     syncSearchSeed();
 
+    buildTopBanner(manifest);
+    buildRails(manifest);
+
     reader.innerHTML = "";
     reader.appendChild(buildTraversal("top"));
     reader.appendChild(buildChapterMeta(manifest, images.length));
@@ -967,6 +1198,8 @@
     const betweenEvery = Number(manifest?.ads?.between_every) || 0;
     const betweenSlots = Number(manifest?.ads?.between_slots) || 3;
     const finalBlock = Number(manifest?.ads?.final_block) || 0;
+
+    let groupNumber = 0;
 
     for (let i = 0; i < images.length; i += 1) {
       const pageNumber = i + 1;
@@ -978,7 +1211,6 @@
       img.decoding = "async";
       img.src = `${baseUrl}/${images[i]}`;
       img.alt = `${selection.work.display || selection.work.slug} · ${getEntryDisplayLabel(selection.work, selection.entry)} · Page ${pageNumber}`;
-
       wrap.appendChild(img);
 
       const badge = buildImageAnnotationBadge(pageNumber);
@@ -987,28 +1219,28 @@
       reader.appendChild(wrap);
 
       if (betweenEvery > 0 && pageNumber % betweenEvery === 0 && pageNumber < images.length) {
-        const grid = createEl("section", "between-grid");
-        for (let s = 0; s < betweenSlots; s += 1) {
-          const slot = createEl("div", "slot between-slot");
-          grid.appendChild(slot);
-        }
-        reader.appendChild(grid);
+        groupNumber += 1;
+        reader.appendChild(betweenAd(manifest, groupNumber, betweenSlots));
       }
     }
 
     if (finalBlock > 0) {
-      const endGrid = createEl("section", "end-grid");
-      for (let i = 0; i < finalBlock; i += 1) {
-        endGrid.appendChild(createEl("div", "slot end-slot"));
-      }
-      reader.appendChild(endGrid);
+      reader.appendChild(endAds(manifest, finalBlock));
     }
 
     reader.appendChild(buildTraversal("bottom"));
 
     updatePageProgressBar(0);
     updateChapterProgress(0);
+
+    setTimeout(() => {
+      serveAdsSafe();
+    }, 100);
   }
+
+  /* =========================================================
+     SWITCH ENTRY
+  ========================================================= */
 
   async function switchEntry(dir, file, replace = false, options = {}) {
     try {
@@ -1032,9 +1264,14 @@
     }
   }
 
+  /* =========================================================
+     BOOT
+  ========================================================= */
+
   async function boot() {
     try {
       await loadLibrary();
+      await hydrateWorksFromBlocksIfNeeded();
       await loadAllMaps();
       buildSearchIndex();
 
